@@ -1,11 +1,13 @@
-# SENG 513 – Group 8
+
+# FinClear
+SENG 513 – Group 8
 
 Web-Based Systems – Fall 2026
 
 ## Project Overview
 
 
-Welcome to FinClear, our financial management application. This repository will contain both the frontend and backend for this full-stack project. The following stack will be used for implementation
+Welcome to **FinClear**, our financial management application. This repository will contain both the frontend and backend for this full-stack project. The following stack will be used for implementation
 
 #### Frontend
 - React Vite
