@@ -37,4 +37,16 @@ Welcome to **FinClear**, our financial management application. This repository w
 
 ## Getting Started
 
-Setup instructions will be added as development progresses.
+### Docker Setup
+
+#### Prerequisites
+
+#### Environment Configuration
+
+#### Running the Development Environment
+
+#### Running the Production Configuration
+
+#### Stopping the Containers
+
+#### Password and Secrets Strategy
