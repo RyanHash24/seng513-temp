@@ -10,6 +10,7 @@ services:
       PGUSER: seng513
       PGPASSWORD: ${POSTGRES_PASSWORD}
       PGDATABASE: seng513
+      NODE_ENV: development
 
   database:
     image: postgres:15-alpine
