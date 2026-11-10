@@ -1,11 +1,18 @@
 
 import { useState } from "react";
+import type { CSSProperties } from "react";
 import Transactions from "./Transactions";
+import Dashboard from "./Dashboard";
 
-type Page = "dashboard" | "transactions";
+type Page =
+  | "dashboard"
+  | "transactions"
+  | "budgets"
+  | "savings"
+  | "settings";
 
 function App() {
-  const [page, setPage] = useState<Page>("transactions");
+  const [page, setPage] = useState<Page>("dashboard");
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
@@ -19,7 +26,12 @@ function App() {
           color: "white",
         }}
       >
-        <h1 style={{ color: "#57D995", marginBottom: "36px" }}>
+        <h1
+          style={{
+            color: "#57D995",
+            marginBottom: "36px",
+          }}
+        >
           FinClear
         </h1>
 
@@ -37,6 +49,27 @@ function App() {
           >
             Transactions
           </button>
+
+          <button
+            onClick={() => setPage("budgets")}
+            style={navStyle(page === "budgets")}
+          >
+            Budgets
+          </button>
+
+          <button
+            onClick={() => setPage("savings")}
+            style={navStyle(page === "savings")}
+          >
+            Savings Goals
+          </button>
+
+          <button
+            onClick={() => setPage("settings")}
+            style={navStyle(page === "settings")}
+          >
+            Settings
+          </button>
         </nav>
       </aside>
 
@@ -48,21 +81,36 @@ function App() {
           color: "white",
         }}
       >
-        {page === "dashboard" ? (
+        {page === "dashboard" && <Dashboard />}
+
+        {page === "transactions" && <Transactions />}
+
+        {page === "budgets" && (
           <div style={{ padding: "36px" }}>
-            <h1>Dashboard</h1>
-            <p>Welcome to FinClear.</p>
-            <p>Your financial overview will appear here.</p>
+            <h1>Budgets</h1>
+            <p>Manage your monthly budgets here.</p>
           </div>
-        ) : (
-          <Transactions />
+        )}
+
+        {page === "savings" && (
+          <div style={{ padding: "36px" }}>
+            <h1>Savings Goals</h1>
+            <p>Track your savings goals here.</p>
+          </div>
+        )}
+
+        {page === "settings" && (
+          <div style={{ padding: "36px" }}>
+            <h1>Settings</h1>
+            <p>Manage your FinClear preferences here.</p>
+          </div>
         )}
       </main>
     </div>
   );
 }
 
-function navStyle(active: boolean): React.CSSProperties {
+function navStyle(active: boolean): CSSProperties {
   return {
     padding: "14px 16px",
     textAlign: "left",
