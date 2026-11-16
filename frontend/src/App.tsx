@@ -5,6 +5,7 @@ import Transactions from "./Transactions";
 import Dashboard from "./Dashboard";
 import SavingsGoals from "./SavingsGoals";
 import Budgets from "./Budgets";
+import Settings from "./Settings";
 
 type Page =
   | "dashboard"
@@ -100,12 +101,7 @@ function App() {
 
         {page === "savings" && <SavingsGoals />}
 
-        {page === "settings" && (
-          <div style={{ padding: "36px" }}>
-            <h1>Settings</h1>
-            <p>Manage your FinClear preferences here.</p>
-          </div>
-        )}
+        {page === "settings" && <Settings />}
       </main>
     </div>
   );
