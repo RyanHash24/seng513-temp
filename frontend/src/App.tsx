@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import Transactions from "./Transactions";
 import Dashboard from "./Dashboard";
 import SavingsGoals from "./SavingsGoals";
+import Budgets from "./Budgets";
 
 type Page =
   | "dashboard"
@@ -16,15 +17,24 @@ function App() {
   const [page, setPage] = useState<Page>("dashboard");
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        width: "100%",
+        backgroundColor: "#071B15",
+      }}
+    >
       <aside
         style={{
           width: "240px",
           minWidth: "240px",
+          boxSizing: "border-box",
           backgroundColor: "#0B1F18",
           padding: "28px 18px",
           borderRight: "1px solid #254438",
           color: "white",
+          minHeight: "100vh",
         }}
       >
         <h1
@@ -86,12 +96,7 @@ function App() {
 
         {page === "transactions" && <Transactions />}
 
-        {page === "budgets" && (
-          <div style={{ padding: "36px" }}>
-            <h1>Budgets</h1>
-            <p>Manage your monthly budgets here.</p>
-          </div>
-        )}
+        {page === "budgets" && <Budgets />}
 
         {page === "savings" && <SavingsGoals />}
 
