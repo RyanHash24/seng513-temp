@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import Transactions from "./Transactions";
 import Dashboard from "./Dashboard";
+import SavingsGoals from "./SavingsGoals";
 
 type Page =
   | "dashboard"
@@ -92,12 +93,7 @@ function App() {
           </div>
         )}
 
-        {page === "savings" && (
-          <div style={{ padding: "36px" }}>
-            <h1>Savings Goals</h1>
-            <p>Track your savings goals here.</p>
-          </div>
-        )}
+        {page === "savings" && <SavingsGoals />}
 
         {page === "settings" && (
           <div style={{ padding: "36px" }}>
