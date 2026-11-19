@@ -168,6 +168,55 @@
     margin-top: 8px;
   }
   
+  /* Monthly Report Section */
+  
+  .budget-report {
+    margin-top: 30px;
+  }
+  
+  .budget-report h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 12px;
+  }
+  
+  .budget-report > p {
+    color: #9cafa6;
+    font-size: 15px;
+    margin-bottom: 22px;
+  }
+  
+  .budget-report-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px 24px;
+    background: #57d995;
+    color: #071b15;
+    border: none;
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  
+  .budget-report-button:hover:not(:disabled) {
+    background: #43c783;
+  }
+  
+  .budget-report-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .budget-report .budget-report-error {
+    color: #ff6868;
+    font-size: 14px;
+    margin-top: 16px;
+    margin-bottom: 0;
+  }
+  
   @media (max-width: 1000px) {
     .budgets-summary {
       grid-template-columns: 1fr;
@@ -185,6 +234,10 @@
   @media (max-width: 600px) {
     .budgets-page {
       padding: 24px 18px;
+    }
+  
+    .budget-report-button {
+      width: 100%;
     }
   }
   
