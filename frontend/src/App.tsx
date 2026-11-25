@@ -6,6 +6,8 @@ import Dashboard from "./Dashboard";
 import SavingsGoals from "./SavingsGoals";
 import Budgets from "./Budgets";
 import Settings from "./Settings";
+import AuthGate from './AuthGate';
+import type { AuthUser } from './auth';
 
 type Page =
   | "dashboard"
@@ -14,8 +16,18 @@ type Page =
   | "savings"
   | "settings";
 
-function App() {
+function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<void> }) {
   const [page, setPage] = useState<Page>("dashboard");
+  const [logoutError, setLogoutError] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function signOut() {
+    setLoggingOut(true);
+    setLogoutError('');
+    try { await logout(); }
+    catch { setLogoutError('Unable to log out. Please try again.'); }
+    finally { setLoggingOut(false); }
+  }
 
   return (
     <div
@@ -83,6 +95,13 @@ function App() {
             Settings
           </button>
         </nav>
+        <div style={{ marginTop: 40, fontFamily: 'sans-serif', fontSize: 14 }}>
+          <p>{user.firstName} {user.lastName}</p>
+          <p style={{ color: '#61d98f', textTransform: 'capitalize' }}>{user.role}</p>
+          {user.role === 'trial' && user.trialEndsAt && <p>Trial ends {new Date(user.trialEndsAt).toLocaleDateString('en-CA')}</p>}
+          <button onClick={signOut} disabled={loggingOut}>{loggingOut ? 'Logging out…' : 'Log out'}</button>
+          {logoutError && <p role="alert">{logoutError}</p>}
+        </div>
       </aside>
 
       <main
@@ -121,4 +140,6 @@ function navStyle(active: boolean): CSSProperties {
   };
 }
 
-export default App;
+export default function App() {
+  return <AuthGate component={Workspace} />;
+}

@@ -1,0 +1,69 @@
+.signup-page { padding-top: max(160px, calc((100dvh - 630px) / 2)); padding-bottom: 112px; }
+.signup-page .login-brand { top: 40px; }
+.signup-layout::before { background: #263c31; }
+.signup-introduction { display: flex; flex-direction: column; gap: 16px; }
+.signup-progress-heading { display: flex; align-items: center; justify-content: space-between; height: 48px; color: #9bb0a3; font-size: 13px; font-weight: 600; }
+.signup-progress-heading button { height: 48px; padding-inline: 12px; }
+.signup-progress { display: flex; gap: 8px; height: 4px; }
+.signup-progress span { flex: 1; border-radius: 3px; background: #263c31; }
+.signup-progress span:first-child, .onboarding-page .signup-progress span { background: #61d98f; }
+.signup-introduction h1 { margin: 0; font-size: 40px; line-height: 48px; font-weight: 700; }
+.signup-introduction p { margin: 0; font-size: 14px; line-height: 21px; color: #9bb0a3; }
+.signup-form { gap: 12px; }
+.signup-form label { gap: 8px; font-size: 14px; font-weight: 500; line-height: 20px; }
+.signup-form input { border-color: #263c31; border-radius: 8px; background: #172b23; padding-inline: 16px; font-size: 16px; font-weight: 400; }
+.signup-password-guidance { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; }
+.signup-password-guidance span { color: #9bb0a3; font-size: 12px; line-height: 18px; }
+.signup-form .login-link { font-size: 13px; }
+.signup-form .signup-consent { display: flex; flex-direction: row; align-items: center; gap: 12px; min-height: 48px; font-size: 14px; font-weight: 400; }
+.signup-consent input { appearance: none; display: grid; place-content: center; flex-shrink: 0; width: 32px; height: 32px; padding: 0; margin: 0; border: 1px solid #8fa89a; border-radius: 8px; background: #172b23; cursor: pointer; }
+.signup-consent input:checked { background: #61d98f; border-color: #61d98f; }
+.signup-consent input:checked::after { content: ''; width: 8px; height: 14px; border: solid #102019; border-width: 0 3px 3px 0; transform: translateY(-2px) rotate(45deg); }
+.signup-legal { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.signup-legal button { flex: 1; }
+.signup-form .login-submit { height: 48px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+.signup-form .login-google { height: 48px; border: 1px solid #dadce0; font-size: 16px; gap: 12px; }
+.signup-back { min-height: 28px; }
+.signup-form .login-error, .signup-form .login-notice { margin: 0; }
+.onboarding-page { display: flex; flex-direction: column; padding: 48px 80px 32px; gap: 24px; }
+.onboarding-page .login-brand { position: static; }
+.onboarding-page header { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+.onboarding-page header > span { color: #9bb0a3; font-size: 13px; }
+.onboarding-layout { flex: 1; display: grid; grid-template-columns: 440px minmax(0, 616px); gap: 64px; align-content: center; width: 100%; max-width: 1120px; margin: 0 auto; }
+.onboarding-page .signup-introduction { gap: 24px; }
+.onboarding-page .signup-progress { height: 6px; }
+.onboarding-page .signup-introduction h1 { font-weight: 600; line-height: 52px; }
+.onboarding-benefits { display: flex; flex-direction: column; gap: 20px; }
+.onboarding-benefits > div { display: flex; align-items: center; gap: 16px; }
+.onboarding-benefits span { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px; background: #163d2a; color: #61d98f; font-size: 13px; font-weight: 600; }
+.onboarding-benefits strong { font-size: 13px; font-weight: 500; }
+.onboarding-benefits p { margin-top: 4px; line-height: 20px; }
+.onboarding-choices { display: flex; flex-direction: column; gap: 16px; }
+.onboarding-card { display: flex; flex-direction: column; gap: 16px; border: 1px solid #263c31; padding: 24px; border-radius: 12px; background: #12221c; }
+.onboarding-card.recommended { border-color: #61d98f; }
+.onboarding-card h2 { margin: 0; font-size: 30px; line-height: 44px; font-weight: 600; }
+.onboarding-card h3 { margin: 0; font-size: 18px; font-weight: 600; }
+.onboarding-card p, .onboarding-choices > p, .onboarding-page footer p { margin: 0; font-size: 14px; line-height: 20px; color: #9bb0a3; }
+.onboarding-recommendation { display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 600; }
+.onboarding-recommendation span { background: #163d2a; color: #61d98f; border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 400; }
+.onboarding-guidance { padding: 16px; border: 1px solid #263c31; border-radius: 12px; background: #163d2a; font-size: 13px; }
+.onboarding-guidance p { margin-top: 4px; font-size: 12px; }
+.onboarding-primary, .onboarding-secondary { width: 100%; min-height: 48px; border: 0; border-radius: 8px; background: #61d98f; color: #102019; font: 600 13px 'Inter Variable', Inter, sans-serif; cursor: pointer; padding: 12px; }
+.onboarding-secondary { min-height: 44px; background: #12221c; color: #eafaf0; border: 1px solid #263c31; }
+.onboarding-skip { min-height: 44px; font-size: 13px; }
+.onboarding-choices > p, .onboarding-page footer p { font-size: 12px; text-align: center; }
+.onboarding-page footer { margin-top: 24px; }
+.onboarding-page footer .signup-legal { justify-content: center; height: 48px; }
+.onboarding-page footer button { flex: 0 1 220px; font-size: 13px; }
+.auth-policy { background: #000; padding: 40px; }
+.auth-policy header { display: flex; align-items: center; gap: 12px; min-height: 48px; margin-bottom: 20px; font-size: 18px; font-weight: 600; }
+.auth-policy header button { min-width: 80px; height: 48px; font-size: 13px; }
+.auth-policy article { display: flex; flex-direction: column; gap: 20px; width: min(100%, 760px); margin-inline: auto; }
+.auth-policy h1, .auth-policy h2, .auth-policy p { margin: 0; }
+.auth-policy h1 { font-size: 30px; line-height: 40px; font-weight: 600; }
+.auth-policy p { color: #9bb0a3; font-size: 14px; line-height: 20px; }
+.auth-policy .auth-policy-draft { color: #61d98f; font-size: 12px; font-weight: 600; }
+.auth-policy section { display: flex; flex-direction: column; gap: 12px; padding: 20px; border: 1px solid #263c31; border-radius: 12px; background: #12221c; }
+.auth-policy h2 { font-size: 18px; line-height: 26px; font-weight: 600; }
+@media(max-width: 1150px) { .onboarding-page { padding-inline: 32px; } .onboarding-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 40px; } }
+@media(max-width: 720px) { .signup-page { padding-top: 140px; padding-bottom: 64px; } .signup-introduction h1 { font-size: 32px; } .onboarding-page { padding: 32px 24px; } .onboarding-layout { grid-template-columns: minmax(0, 1fr); margin-top: 24px; gap: 40px; } .onboarding-page header > span { display: none; } .signup-password-guidance { align-items: flex-start; } .auth-policy { padding: 24px; } }

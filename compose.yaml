@@ -11,6 +11,9 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       PGDATABASE: seng513
       NODE_ENV: development
+      JWT_SECRET: ${JWT_SECRET:-}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-}
+      TRIAL_DAYS: ${TRIAL_DAYS:-14}
 
   database:
     image: postgres:15-alpine
