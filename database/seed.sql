@@ -7,11 +7,11 @@ SELECT pg_advisory_xact_lock(513008);
 INSERT INTO users (
     id, first_name, last_name,
     email, password_hash, access_role,
-    trial_ends_at, created_at
+    trial_ends_at, created_at, email_verified_at
 ) VALUES (
     '10000000-0000-0000-0000-000000000001', 'David', 'Lee',
     'david@example.com', 'scrypt$16384$8$1$d85c18101fdb5faaafacc9a136fbbf6a$b8dbd490bd79f3817c031f1b200af61684a70771d2e37b3b2d6c79b333dd1fbaaacc3a5d7f209ece5b4ff5d4b64404d700be4056ee02f605179f822dbcd97fbe', 'trial',
-    '2026-11-19T23:59:59-07:00', '2026-10-01T12:00:00-06:00'
+    '2026-11-19T23:59:59-07:00', '2026-10-01T12:00:00-06:00', now()
 ) ON CONFLICT DO NOTHING;
 
 INSERT INTO user_settings (
@@ -71,11 +71,11 @@ INSERT INTO notification_preferences (
 INSERT INTO users (
     id, first_name, last_name,
     email, password_hash, access_role,
-    trial_ends_at, created_at
+    trial_ends_at, created_at, email_verified_at
 ) VALUES (
     '10000000-0000-0000-0000-000000000002', 'Morgan', 'Watson',
     'morgan@example.com', 'scrypt$16384$8$1$31ca9a3f4bcf5e368973fc7cf57d9808$2cefcf5d520dabfe9093ff6a2a67c4fb1165d946689d5ad12bc0ea301a2cf329f6d14942352ff5a50e2f4fa06e67e43a504a12b4121fe4cb8115724eb95b3953', 'premium',
-    NULL, '2026-10-01T12:00:00-06:00'
+    NULL, '2026-10-01T12:00:00-06:00', now()
 ) ON CONFLICT DO NOTHING;
 
 INSERT INTO user_settings (
@@ -135,11 +135,11 @@ INSERT INTO notification_preferences (
 INSERT INTO users (
     id, first_name, last_name,
     email, password_hash, access_role,
-    trial_ends_at, created_at
+    trial_ends_at, created_at, email_verified_at
 ) VALUES (
     '10000000-0000-0000-0000-000000000003', 'Sarah', 'Larson',
     NULL, NULL, 'guest',
-    NULL, '2026-10-01T12:00:00-06:00'
+    NULL, '2026-10-01T12:00:00-06:00', NULL
 ) ON CONFLICT DO NOTHING;
 
 INSERT INTO user_settings (
@@ -199,11 +199,11 @@ INSERT INTO notification_preferences (
 INSERT INTO users (
     id, first_name, last_name,
     email, password_hash, access_role,
-    trial_ends_at, created_at
+    trial_ends_at, created_at, email_verified_at
 ) VALUES (
     '10000000-0000-0000-0000-000000000004', 'Alex', 'Chen',
     'alex@example.com', 'scrypt$16384$8$1$962630572a6e5828bdc97cccc54e983e$c960491e44eb1e69d2506c9f049d5c2bb6d15457d83e4d48d56c52ab00a946ce15f2f4a312a0f8ca83228269d54a44775dbe5055ea736c82e4d845eb507968a3', 'free',
-    NULL, '2026-10-01T12:00:00-06:00'
+    NULL, '2026-10-01T12:00:00-06:00', now()
 ) ON CONFLICT DO NOTHING;
 
 INSERT INTO user_settings (

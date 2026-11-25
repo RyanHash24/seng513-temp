@@ -33,7 +33,7 @@ docker compose exec -T database psql -U seng513 -d seng513 \
 -v ON_ERROR_STOP=1 < database/schema.sql
 ```
 
-Run this command before loading seed data.
+Run this command before loading seed data. Then apply `database/migrations/001_signup_consents.sql` and `database/migrations/002_account_access.sql` using the same psql command (substitute the file path). See `ACCOUNT_ACCESS_SETUP.md` for the UUID compatibility check and active-trial demo.
 
 To load the seed data, run the following command:
 

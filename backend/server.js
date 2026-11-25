@@ -1,13 +1,17 @@
 const { Pool } = require('pg');
 const express = require('express');
 const { createAuth, getJwtSecret } = require('./auth');
+const { configuredMailer } = require('./account-flows');
 const PORT = 3000;
 
 function createApp(pool, authOptions) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '8kb' }));
-  app.use('/api/auth', createAuth(pool, authOptions).router);
+  const auth = createAuth(pool, authOptions);
+  app.use('/api/auth', auth.router);
+  app.get('/api/account/permissions', auth.requireAuth, auth.requireVerified, (req,res)=>res.json(req.user.permissions));
+  app.get('/api/account/report-access', auth.requireAuth, auth.requireVerified, auth.requirePermission('monthlyReports'), (req,res)=>res.sendStatus(204));
 
   app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
@@ -36,6 +40,8 @@ if (require.main === module) {
   const app = createApp(new Pool(), {
     secret: getJwtSecret(), production, trialDays: Number(process.env.TRIAL_DAYS || 14),
     origins: process.env.FRONTEND_ORIGIN ? [process.env.FRONTEND_ORIGIN] : undefined,
+    mailer: configuredMailer({production,apiKey:process.env.RESEND_API_KEY,from:process.env.MAIL_FROM,devLinks:process.env.DEV_AUTH_LINKS==='true'}),
+    google: {clientId:process.env.GOOGLE_CLIENT_ID,clientSecret:process.env.GOOGLE_CLIENT_SECRET,redirectUri:process.env.GOOGLE_REDIRECT_URI},
   });
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);

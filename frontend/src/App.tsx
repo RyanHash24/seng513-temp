@@ -98,6 +98,8 @@ function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<voi
         <div style={{ marginTop: 40, fontFamily: 'sans-serif', fontSize: 14 }}>
           <p>{user.firstName} {user.lastName}</p>
           <p style={{ color: '#61d98f', textTransform: 'capitalize' }}>{user.role}</p>
+          {user.role === 'free' && user.trialEndsAt && <p>Your trial has ended. Free-plan limits apply; existing data is retained.</p>}
+          {user.role === 'free' && <p>Free plan: {user.permissions.maxBudgetCategories} budget categories, {user.permissions.maxSavingsGoals} active goals, {user.permissions.maxBankConnections} bank connection.</p>}
           {user.role === 'trial' && user.trialEndsAt && <p>Trial ends {new Date(user.trialEndsAt).toLocaleDateString('en-CA')}</p>}
           <button onClick={signOut} disabled={loggingOut}>{loggingOut ? 'Logging out…' : 'Log out'}</button>
           {logoutError && <p role="alert">{logoutError}</p>}
@@ -114,13 +116,13 @@ function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<voi
       >
         {page === "dashboard" && <Dashboard />}
 
-        {page === "transactions" && <Transactions />}
+        {page === "transactions" && <Transactions userId={user.id} />}
 
-        {page === "budgets" && <Budgets />}
+        {page === "budgets" && <Budgets user={user} />}
 
-        {page === "savings" && <SavingsGoals />}
+        {page === "savings" && <SavingsGoals user={user} />}
 
-        {page === "settings" && <Settings />}
+        {page === "settings" && <Settings user={user} />}
       </main>
     </div>
   );

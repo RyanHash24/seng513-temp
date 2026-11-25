@@ -3,11 +3,13 @@ import '@fontsource-variable/inter';
 import logo from './assets/auth/finclear-logo.png';
 import google from './assets/auth/google.svg';
 import './Login.css';
+import { startGoogle } from './auth';
 
-export default function Login({ onSubmit, onCreateAccount, initialError = '' }: {
+export default function Login({ onSubmit, onCreateAccount, onForgotPassword, initialError = '' }: {
   onSubmit: (credentials: { email: string; password: string }) => Promise<void>;
   initialError?: string;
   onCreateAccount?: () => void;
+  onForgotPassword: () => void;
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,12 +51,12 @@ export default function Login({ onSubmit, onCreateAccount, initialError = '' }: 
               <input id="login-password" name="password" type="password" autoComplete="current-password" placeholder="••••••••••••" required maxLength={1024}
                 value={password} onChange={event => setPassword(event.target.value)} disabled={busy} />
             </label>
-            <button className="login-link login-recovery" type="button" onClick={() => setNotice('Password recovery is not available yet. Please use an existing account password.')}>Forgot password?</button>
+            <button className="login-link login-recovery" type="button" onClick={onForgotPassword}>Forgot password?</button>
           </div>
           <div className="login-actions">
             <button className="login-submit" type="submit" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</button>
             <div className="login-signup">New to FinClear? <button className="login-link" type="button" onClick={onCreateAccount || (() => setNotice('Account creation is not available yet. Please log in with an existing account.'))}>Create an account</button></div>
-            <button className="login-google" type="button" onClick={() => setNotice('Google sign-in is not available yet. Please use your email and password.')}>
+            <button className="login-google" type="button" disabled={busy} onClick={() => { setError(''); void startGoogle('login').catch(e => setError(e.message)); }}>
               <span className="login-google-icon"><img src={google} alt="" /></span>Continue with Google
             </button>
           </div>

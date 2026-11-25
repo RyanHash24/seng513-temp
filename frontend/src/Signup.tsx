@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import '@fontsource-variable/inter';
 import AuthBrand from './AuthBrand';
 import AuthPolicy from './AuthPolicy';
-import type { SignupCredentials } from './auth';
+import { startGoogle, type SignupCredentials } from './auth';
 import google from './assets/auth/google.svg';
 import './Login.css';
 import './Signup.css';
@@ -54,7 +54,7 @@ export default function Signup({ onSubmit, onBack }: { onSubmit: (credentials: S
         <label className="signup-consent"><input type="checkbox" required checked={acceptedTerms} onChange={event => setAcceptedTerms(event.target.checked)} disabled={busy} /><span>I agree to the Terms of Service and acknowledge the Privacy Policy.</span></label>
         <div className="signup-legal"><button className="login-link" type="button" onClick={() => setPolicy('privacy')}>Privacy Policy</button><button className="login-link" type="button" onClick={() => setPolicy('terms')}>Terms of Service</button></div>
         <button className="login-submit" type="submit" disabled={busy}>{busy ? 'Creating account…' : 'Continue'}</button>
-        <button className="login-google" type="button" onClick={() => setNotice('Google sign-up is not available yet. Please use your email and password.')}><span className="login-google-icon"><img src={google} alt="" /></span>Sign up with Google</button>
+        <button className="login-google" type="button" disabled={busy} onClick={() => { setError(''); if (!acceptedTerms) { setError('Please accept the terms first.'); return; } void startGoogle('signup', true).catch(e => setError(e.message)); }}><span className="login-google-icon"><img src={google} alt="" /></span>Sign up with Google</button>
         <button className="login-link signup-back" type="button" onClick={onBack} disabled={busy}>Already have an account? Log in</button>
         {error && <p className="login-error" role="alert">{error}</p>}
         {notice && <p className="login-notice" role="status">{notice}</p>}

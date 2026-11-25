@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import "./Settings.css";
+import type { AuthUser } from "./auth";
 
 type SettingsData = {
   name: string;
@@ -20,23 +21,23 @@ const defaultSettings: SettingsData = {
   savingsReminders: true,
 };
 
-function loadSettings(): SettingsData {
+function loadSettings(user: AuthUser): SettingsData {
   try {
-    const saved = localStorage.getItem("finclear-settings");
+    const saved = localStorage.getItem(`finclear-settings-${user.id}`);
 
     if (saved) {
-      return { ...defaultSettings, ...JSON.parse(saved) };
+      return { ...defaultSettings, ...JSON.parse(saved), name: `${user.firstName} ${user.lastName}`, email: user.email };
     }
   } catch {
     console.error("Unable to load settings");
   }
 
-  return defaultSettings;
+  return {...defaultSettings,name:`${user.firstName} ${user.lastName}`,email:user.email};
 }
 
-function Settings() {
+function Settings({user}: {user:AuthUser}) {
   const [settings, setSettings] = useState<SettingsData>(
-    loadSettings
+    ()=>loadSettings(user)
   );
 
   const [saved, setSaved] = useState(false);
@@ -56,7 +57,7 @@ function Settings() {
   function saveSettings() {
     try {
       localStorage.setItem(
-        "finclear-settings",
+        `finclear-settings-${user.id}`,
         JSON.stringify(settings)
       );
 
@@ -75,7 +76,7 @@ function Settings() {
       </p>
 
       <section className="settings-card">
-        <h2>Profile Information</h2>
+        <h2>Profile Information</h2><p>Current plan: {user.role} · Email verified</p>
         <p>Update your personal account details.</p>
 
         <div className="settings-form">

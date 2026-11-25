@@ -46,11 +46,11 @@ const starterTransactions: Transaction[] = [
   },
 ];
 
-const STORAGE_KEY = "finclear_transactions";
+const storageKey = (userId: string) => `finclear_transactions_${userId}`;
 
-function loadTransactions(): Transaction[] {
+function loadTransactions(userId: string): Transaction[] {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(storageKey(userId));
 
     if (saved !== null) {
       const parsed: unknown = JSON.parse(saved);
@@ -65,9 +65,9 @@ function loadTransactions(): Transaction[] {
   return starterTransactions;
 }
 
-function Transactions() {
+function Transactions({userId}: {userId: string}) {
   const [transactions, setTransactions] =
-    useState<Transaction[]>(loadTransactions);
+    useState<Transaction[]>(()=>loadTransactions(userId));
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -84,10 +84,10 @@ function Transactions() {
 
   useEffect(() => {
     localStorage.setItem(
-      STORAGE_KEY,
+      storageKey(userId),
       JSON.stringify(transactions)
     );
-  }, [transactions]);
+  }, [transactions, userId]);
 
   const filteredTransactions = useMemo(() => {
     return transactions

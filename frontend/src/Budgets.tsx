@@ -1,6 +1,7 @@
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import "./Budgets.css";
+import type { AuthUser } from "./auth";
 
 type Budget = {
   id: number;
@@ -26,9 +27,14 @@ const formatMoney = (amount: number) =>
     currency: "CAD",
   });
 
-function Budgets() {
-  const [budgets, setBudgets] =
-    useState<Budget[]>(initialBudgets);
+function Budgets({user}: {user: AuthUser}) {
+  const key = `finclear-budgets-${user.id}`;
+  const [budgets, setBudgets] = useState<Budget[]>(() => {
+    try { const saved = localStorage.getItem(key); if (saved) return JSON.parse(saved); } catch { /* demo fallback */ }
+    return user.permissions.maxBudgetCategories === null ? initialBudgets : initialBudgets.slice(0,user.permissions.maxBudgetCategories);
+  });
+  useEffect(()=>{ localStorage.setItem(key, JSON.stringify(budgets)); },[key,budgets]);
+  const atLimit = user.permissions.maxBudgetCategories !== null && budgets.length >= user.permissions.maxBudgetCategories;
 
   const [category, setCategory] = useState("");
   const [limit, setLimit] = useState("");
@@ -49,7 +55,7 @@ function Budgets() {
   const remaining = totalBudget - totalSpent;
 
   async function downloadMonthlyReport() {
-    if (downloading) return;
+    if (downloading || !user.permissions.monthlyReports) return;
 
     setDownloading(true);
     setDownloadError("");
@@ -58,6 +64,8 @@ function Budgets() {
     const reportTab = window.open("", "_blank");
 
     try {
+      const access = await fetch("/api/account/report-access", {credentials:"same-origin"});
+      if (!access.ok) throw new Error("Your current plan does not allow report downloads.");
       const response = await fetch(REPORT_API_URL, {
         method: "GET",
         headers: {
@@ -109,6 +117,7 @@ function Budgets() {
 
   function addBudget(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (atLimit) return;
 
     const amount = Number(limit);
 
@@ -202,6 +211,7 @@ function Budgets() {
 
       <section className="budget-panel budget-create">
         <h3>Create New Budget</h3>
+        {atLimit && <p>Your plan limit is reached. Delete a budget or upgrade to add another.</p>}
 
         <form className="budget-form" onSubmit={addBudget}>
           <input
@@ -222,7 +232,7 @@ function Budgets() {
             required
           />
 
-          <button type="submit">
+          <button type="submit" disabled={atLimit}>
             + Add Budget
           </button>
         </form>
@@ -295,6 +305,7 @@ function Budgets() {
 
       <section className="budget-panel budget-report">
         <h3>Monthly Budget Report</h3>
+        {!user.permissions.monthlyReports && <p>Available on Trial and Premium plans.</p>}
 
         <p>
           Download your monthly financial summary
@@ -305,7 +316,7 @@ function Budgets() {
           type="button"
           className="budget-report-button"
           onClick={downloadMonthlyReport}
-          disabled={downloading}
+          disabled={downloading || !user.permissions.monthlyReports}
         >
           {downloading
             ? "Preparing Report..."
