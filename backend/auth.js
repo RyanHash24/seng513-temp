@@ -220,8 +220,8 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
           };
         }
         // Do not automatically lonk password-based accounts.
-        const { rows: [collision] }  = await alient.query(
-          'SELECT id FROM users WHERE email=%1',
+        const { rows: [collision] }  = await client.query(
+          'SELECT id FROM users WHERE email=$1',
           [email]
         );
         if (collision) {
@@ -248,28 +248,44 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
       if (!row) {
         return fail();
       }
+      if (!row) {
+  return fail();
+}
+
       if (row.kind === 'signup-required') {
         return res.redirect(
-          303,
-          '${origin}/#google-signup'
+        303,
+          `${origin}/#google-signup`
         );
-      }
+}
+
       if (row.kind === 'email-conflict') {
         return res.redirect(
           303,
-          '${origin}/#google-email-conflict'
-        );
-      }
+          `${origin}/#google-email-conflict`
+  );
+}
+
       await persistExpiration(row.user);
+
       issueSession(res, row.user);
+
       if (row.kind === 'created') {
         return res.redirect(
           303,
-          '${origin}/#onboarding'
-        );
-      }
-      return res.redirect(303, '${origin}/');
-    } catch { return fail(); }
+          `${origin}/#onboarding`
+  );
+}
+
+      return res.redirect(303, `${origin}/`);
+    } catch (error) {
+  console.error('Google OAuth callback failed:', {
+    name: error.name,
+    code: error.code
+  });
+
+  return fail();
+}
   });
   router.get('/me', requireAuth, (req, res) => res.json({ user: req.user }));
   router.post('/logout', (req, res) => { res.clearCookie(COOKIE, cookieOptions); res.sendStatus(204); });
