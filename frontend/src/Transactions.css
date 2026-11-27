@@ -6,6 +6,18 @@
     padding: 32px;
     font-family: Inter, Arial, sans-serif;
   }
+
+  .transaction-views { display: flex; gap: 12px; margin: 26px 0; }
+  .transaction-views button[aria-pressed="false"] { color: #c5d6cd; background: #10271f; border: 1px solid #345447; }
+  .bank-history-note, .bank-sync-row p { color: #b3c6bc; line-height: 1.5; }
+  .bank-sync-list { display: grid; gap: 16px; margin: 24px 0; }
+  .bank-sync-row { display: flex; align-items: start; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 20px; border: 1px solid #345447; border-radius: 10px; }
+  .bank-sync-row p { margin: 8px 0 0; }
+  .bank-sync-control { max-width: 420px; }
+  .bank-sync-control p { line-height: 1.5; }
+  .bank-transactions small { display: block; color: #b3c6bc; margin-top: 6px; }
+  .bank-pagination { display: flex; gap: 12px; margin-top: 20px; }
+  .primary-button:disabled { cursor: wait; opacity: .65; }
   
   .transactions-header,
   .transaction-toolbar {
@@ -210,4 +222,3 @@
       padding: 20px;
     }
   }
-  

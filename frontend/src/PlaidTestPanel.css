@@ -1,0 +1,27 @@
+.plaid-test-panel { min-width: 0; display: grid; gap: 24px; }
+.plaid-test-panel > .plaid-test-note { color: var(--fc-muted); margin: 0; line-height: 1.5; }
+.plaid-test-panel .settings-card,
+.plaid-test-panel .transaction-table-container { min-width: 0; max-width: 100%; margin: 0; background: var(--fc-surface); border-color: var(--fc-border); color: var(--fc-text); }
+.plaid-test-panel .bank-history-note,
+.plaid-test-panel .settings-card > p,
+.plaid-test-panel .bank-sync-row p,
+.plaid-test-panel .linked-accounts li span,
+.plaid-test-panel .bank-transactions small,
+.plaid-test-panel .transaction-table th { color: var(--fc-muted); }
+.plaid-test-panel .bank-sync-row,
+.plaid-test-panel .linked-accounts li,
+.plaid-test-panel .transaction-table :is(th, td) { border-color: var(--fc-border); }
+.plaid-test-panel .primary-button,
+.plaid-test-panel .settings-save { background: var(--fc-accent); color: var(--fc-on-accent); }
+.plaid-test-panel button:focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+.plaid-test-panel .bank-sync-control { min-width: 0; }
+.plaid-test-panel .bank-sync-row { overflow-wrap: anywhere; }
+.plaid-test-panel .transaction-table-scroll { max-width: 100%; }
+.plaid-test-panel .negative { color: var(--fc-danger, #ff8585); }
+.plaid-test-panel .positive { color: var(--fc-accent); }
+@media (max-width: 700px) {
+  .plaid-test-panel .settings-card,
+  .plaid-test-panel .transaction-table-container { padding: 16px; }
+  .plaid-test-panel .bank-sync-row { padding: 12px; gap: 16px; }
+  .plaid-test-panel .linked-accounts li { padding: 12px; }
+}

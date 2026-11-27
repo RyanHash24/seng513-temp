@@ -89,6 +89,30 @@ test('signup failure never issues a login cookie', async t => {
   assert.equal(response.headers.get('set-cookie'), null);
 });
 
+test('duplicate email signup explains the conflict and rolls back without issuing a session', async t => {
+  const statements = [];
+  let released = false;
+  const database = { connect: async () => ({
+    query: async (sql, params) => {
+      statements.push(sql);
+      if (sql.includes('INSERT INTO users')) {
+        assert.equal(params[2], 'taylor@example.com');
+        throw Object.assign(new Error('Duplicate email'), { code: '23505', constraint: 'users_email_unique' });
+      }
+      return { rows: [] };
+    },
+    release: () => { released = true; },
+  }) };
+  const { request } = await fixture(t, { database });
+  const response = await request('signup', { ...signup, email: ' TAYLOR@EXAMPLE.COM ' });
+  assert.equal(response.status, 409);
+  assert.deepEqual(await response.json(), { error: 'This email is already registered. Please log in or use a different email address.' });
+  assert.equal(response.headers.get('set-cookie'), null);
+  assert.equal(statements.at(-1), 'ROLLBACK');
+  assert.equal(statements.includes('COMMIT'), false);
+  assert.equal(released, true);
+});
+
 test('signup rolls back the account when a default record cannot be saved', async t => {
   const statements = [];
   let released = false;

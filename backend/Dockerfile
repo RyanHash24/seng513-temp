@@ -5,6 +5,6 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-COPY server.js auth.js account-flows.js entitlements.js ./
+COPY *.js ./
 EXPOSE 3000
 CMD ["node", "server.js"]

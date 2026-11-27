@@ -1,7 +1,6 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import "./SavingsGoals.css";
-import type { AuthUser } from "./auth";
 
 type Goal = {
   id: number;
@@ -11,11 +10,8 @@ type Goal = {
   deadline: string;
 };
 
-export default function SavingsGoals({user}: {user: AuthUser}) {
-  const key = `finclear-goals-${user.id}`;
-  const [goals, setGoals] = useState<Goal[]>(() => {
-    try { const saved=localStorage.getItem(key); if(saved) return JSON.parse(saved); } catch { /* demo fallback */ }
-    return [
+export default function SavingsGoals() {
+  const [goals, setGoals] = useState<Goal[]>([
     {
       id: 1,
       name: "Emergency Fund",
@@ -30,9 +26,7 @@ export default function SavingsGoals({user}: {user: AuthUser}) {
       saved: 800,
       deadline: "2027-03-01",
     },
-  ]; });
-  useEffect(()=>{localStorage.setItem(key,JSON.stringify(goals));},[key,goals]);
-  const atLimit = user.permissions.maxSavingsGoals !== null && goals.filter(g=>g.saved<g.target).length >= user.permissions.maxSavingsGoals;
+  ]);
 
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
@@ -40,7 +34,6 @@ export default function SavingsGoals({user}: {user: AuthUser}) {
 
   function addGoal(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (atLimit) return;
 
     if (!name.trim() || Number(target) <= 0 || !deadline) {
       return;
@@ -128,7 +121,6 @@ export default function SavingsGoals({user}: {user: AuthUser}) {
 
       <section className="savings-section">
         <h2>Create New Goal</h2>
-        {atLimit && <p>Your active goal limit is reached. Complete or delete a goal to add another.</p>}
 
         <form className="goal-form" onSubmit={addGoal}>
           <input
@@ -155,7 +147,7 @@ export default function SavingsGoals({user}: {user: AuthUser}) {
             required
           />
 
-          <button type="submit" className="goal-primary" disabled={atLimit}>
+          <button type="submit" className="goal-primary">
             + Add Goal
           </button>
         </form>

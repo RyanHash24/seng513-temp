@@ -1,8 +1,0 @@
-services:
-  backend:
-    environment:
-      NODE_ENV: production
-    restart: unless-stopped
-
-  database:
-    restart: unless-stopped

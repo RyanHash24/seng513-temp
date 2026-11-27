@@ -25,6 +25,8 @@
 .signup-form .login-google { height: 48px; border: 1px solid #dadce0; font-size: 16px; gap: 12px; }
 .signup-back { min-height: 28px; }
 .signup-form .login-error, .signup-form .login-notice { margin: 0; }
+.signup-form .signup-form-error { padding: 12px 16px; border: 1px solid #ffb4ab; border-radius: 8px; background: #2b1c1b; scroll-margin-top: 24px; }
+.signup-form .signup-form-error:focus { outline: 2px solid #ffb4ab; outline-offset: 3px; }
 .onboarding-page { display: flex; flex-direction: column; padding: 48px 80px 32px; gap: 24px; }
 .onboarding-page .login-brand { position: static; }
 .onboarding-page header { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
