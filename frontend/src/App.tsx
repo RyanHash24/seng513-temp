@@ -20,6 +20,7 @@ function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<voi
   const [page, setPage] = useState<Page>("dashboard");
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
+  
 
   async function signOut() {
     setLoggingOut(true);
@@ -28,6 +29,7 @@ function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<voi
     catch { setLogoutError('Unable to log out. Please try again.'); }
     finally { setLoggingOut(false); }
   }
+  console.log("Workspace user ID:", user.id);
 
   return (
     <div
@@ -114,7 +116,7 @@ function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<voi
           color: "white",
         }}
       >
-        {page === "dashboard" && <Dashboard />}
+        {page === "dashboard" && <Dashboard userId={user.id} />}
 
         {page === "transactions" && <Transactions userId={user.id} />}
 

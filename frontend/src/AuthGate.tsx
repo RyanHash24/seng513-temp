@@ -8,10 +8,27 @@ import AccountRecovery from './AccountRecovery';
 export default function AuthGate({ component: Component }: { component: ComponentType<{ user: AuthUser; logout: () => Promise<void> }> }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checking, setChecking] = useState(true);
-  const [error, setError] = useState(window.location.hash === '#google-error' ? 'Google sign-in failed. Sign up first if you do not have a Google-linked account. Existing password accounts are not automatically linked.' : '');
+  const [error, setError] = useState(() => {
+    switch (window.location.hash) {
+      case '#google-email-conflict':
+        return 'An account alreadt exists with this email. Please log in using your password.';
+      case '#google-error':
+        return 'Google authentication failed. Please try again.';
+      default:
+        return '';
+    }
+  })
   const [link] = useState(() => new URLSearchParams(window.location.hash.slice(1)));
   const [flow, setFlow] = useState<'forgot'|'verify'|'reset'|null>(()=>link.has('verify')?'verify':link.has('reset')?'reset':null);
-  const [screen, setScreen] = useState<'login' | 'signup' | 'connect'>('login');
+  const [screen, setScreen] = useState<'login'|'signup'|'connect'>(()=> {
+    if (window.location.hash === '#google-signup') {
+      return 'signup';
+    }
+    if (window.location.hash === '#onboarding') {
+      return 'connect';
+    }
+    return 'login';
+  });
   const authVersion = useRef(0);
   useEffect(() => {
     if (window.location.hash) window.history.replaceState(null,'',window.location.pathname + window.location.search);

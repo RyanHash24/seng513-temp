@@ -1,71 +1,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import "./Transactions.css";
+import {loadTransactions, storageKey, type Transaction} from "./transactionStorage";
 
-type Transaction = {
-  id: string;
-  name: string;
-  category: string;
-  amount: number;
-  date: string;
-  type: "income" | "expense";
-};
 
-const starterTransactions: Transaction[] = [
-  {
-    id: "1",
-    name: "Groceries",
-    category: "Food",
-    amount: 85.5,
-    date: "2026-11-05",
-    type: "expense",
-  },
-  {
-    id: "2",
-    name: "Salary",
-    category: "Income",
-    amount: 4500,
-    date: "2026-11-01",
-    type: "income",
-  },
-  {
-    id: "3",
-    name: "Netflix",
-    category: "Subscriptions",
-    amount: 16.99,
-    date: "2026-10-30",
-    type: "expense",
-  },
-  {
-    id: "4",
-    name: "Coffee",
-    category: "Food",
-    amount: 6.5,
-    date: "2026-10-28",
-    type: "expense",
-  },
-];
-
-const storageKey = (userId: string) => `finclear_transactions_${userId}`;
-
-function loadTransactions(userId: string): Transaction[] {
-  try {
-    const saved = localStorage.getItem(storageKey(userId));
-
-    if (saved !== null) {
-      const parsed: unknown = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        return parsed as Transaction[];
-      }
-    }
-  } catch (error) {
-    console.error("Unable to load transactions:", error);
-  }
-
-  return starterTransactions;
-}
-
-function Transactions({userId}: {userId: string}) {
+function Transactions({ userId }: { userId: string }) {
   const [transactions, setTransactions] =
     useState<Transaction[]>(()=>loadTransactions(userId));
 
@@ -83,11 +22,14 @@ function Transactions({userId}: {userId: string}) {
     useState<"income" | "expense">("expense");
 
   useEffect(() => {
-    localStorage.setItem(
-      storageKey(userId),
-      JSON.stringify(transactions)
-    );
-  }, [transactions, userId]);
+  localStorage.setItem(
+    storageKey(userId),
+    JSON.stringify(transactions)
+  );
+
+  console.log("Transactions user ID:", userId);
+  console.log("Saved transaction count:", transactions.length);
+}, [transactions, userId]);
 
   const filteredTransactions = useMemo(() => {
     return transactions

@@ -212,21 +212,63 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
       const email=profile.email.trim().toLowerCase();
       const row=await transaction(pool,async client=>{
         const {rows:[existing]}=await client.query(`SELECT ${USER_FIELDS} FROM users WHERE google_subject=$1 AND access_role<>'guest'`,[profile.sub]);
-        if (existing) return existing;
-        // Never link an existing password account based on email alone.
-        if (flow.mode!=='signup') return null;
-        const {rows:[collision]}=await client.query('SELECT id FROM users WHERE email=$1',[email]);
-        if (collision) return null;
+        
+        if (existing) {
+          return {
+            kind: 'existing',
+            user: existing
+          };
+        }
+        // Do not automatically lonk password-based accounts.
+        const { rows: [collision] }  = await alient.query(
+          'SELECT id FROM users WHERE email=%1',
+          [email]
+        );
+        if (collision) {
+          return {
+            kind: 'email-conflict'
+          };
+          }
+          //New Google users must complete signup
+          if (flow.mode !== 'signup') {
+            return {
+              kind: 'signup-required'
+            };           
+        }
         const {rows:[created]}=await client.query(`INSERT INTO users(first_name,last_name,email,password_hash,access_role,trial_ends_at,email_verified_at,google_subject)
           VALUES($1,$2,$3,$4,'trial',now()+$5::int*interval '1 day',now(),$6) RETURNING ${USER_FIELDS}`,[String(profile.given_name||'Google User').slice(0,100).trim()||'Google User',String(profile.family_name||'').slice(0,100),email,await hashPassword(token()),trialDays,profile.sub]);
         await client.query('INSERT INTO user_settings(user_id) VALUES($1)',[created.id]);
         await client.query("INSERT INTO notification_preferences(user_id,event_type) SELECT $1,unnest(ARRAY['budget_warning','budget_exceeded','goal_progress','bank_connection','weekly_summary','trial_expiring'])",[created.id]);
         await client.query('INSERT INTO user_registration_consents(user_id,policy_version) VALUES($1,$2)',[created.id,SIGNUP_POLICY_VERSION]);
-        return created;
+        return {
+          kind: 'created',
+          user: created
+        };
       });
-      if (!row) return fail();
-      await persistExpiration(row);
-      issueSession(res,row); res.redirect(303,`${origin}/`);
+      if (!row) {
+        return fail();
+      }
+      if (row.kind === 'signup-required') {
+        return res.redirect(
+          303,
+          '${origin}/#google-signup'
+        );
+      }
+      if (row.kind === 'email-conflict') {
+        return res.redirect(
+          303,
+          '${origin}/#google-email-conflict'
+        );
+      }
+      await persistExpiration(row.user);
+      issueSession(res, row.user);
+      if (row.kind === 'created') {
+        return res.redirect(
+          303,
+          '${origin}/#onboarding'
+        );
+      }
+      return res.redirect(303, '${origin}/');
     } catch { return fail(); }
   });
   router.get('/me', requireAuth, (req, res) => res.json({ user: req.user }));

@@ -1,49 +1,7 @@
 
-import { useState } from "react";
+import { loadTransactions } from "./transactionStorage";
 
-type Transaction = {
-  id: number;
-  name: string;
-  category: string;
-  date: string;
-  type: "income" | "expense";
-  amount: number;
-};
 
-const sampleTransactions: Transaction[] = [
-  {
-    id: 1,
-    name: "Groceries",
-    category: "Food",
-    date: "2026-11-05",
-    type: "expense",
-    amount: 85.5,
-  },
-  {
-    id: 2,
-    name: "Salary",
-    category: "Income",
-    date: "2026-11-01",
-    type: "income",
-    amount: 4500,
-  },
-  {
-    id: 3,
-    name: "Netflix",
-    category: "Subscriptions",
-    date: "2026-10-30",
-    type: "expense",
-    amount: 16.99,
-  },
-  {
-    id: 4,
-    name: "Coffee",
-    category: "Food",
-    date: "2026-10-28",
-    type: "expense",
-    amount: 6.5,
-  },
-];
 
 const money = (amount: number) =>
   amount.toLocaleString("en-CA", {
@@ -51,8 +9,12 @@ const money = (amount: number) =>
     currency: "CAD",
   });
 
-function Dashboard() {
-  const [transactions] = useState(sampleTransactions);
+function Dashboard({ userId }: { userId: string }) {
+  const transactions = loadTransactions(userId);
+
+  console.log("Dashboard user ID:", userId);
+  console.log("Dashboard transaction count:", transactions.length);
+
 
   const income = transactions
     .filter((t) => t.type === "income")
@@ -183,7 +145,7 @@ function Dashboard() {
           marginTop: "20px",
         }}
       >
-        Dashboard currently displays sample data.
+        Dashboard displays your saved transactions.
       </p>
     </div>
   );

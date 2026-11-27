@@ -12,6 +12,90 @@ function createApp(pool, authOptions) {
   app.use('/api/auth', auth.router);
   app.get('/api/account/permissions', auth.requireAuth, auth.requireVerified, (req,res)=>res.json(req.user.permissions));
   app.get('/api/account/report-access', auth.requireAuth, auth.requireVerified, auth.requirePermission('monthlyReports'), (req,res)=>res.sendStatus(204));
+  app.get(
+    '/api/account/data',
+    auth.requireAuth,
+    auth.requireVerified,
+    async (req, res) => {
+        const userId = req.user.id;
+
+        res.set('Cache-Control', 'no-store');
+
+        try {
+            const [
+                connections,
+                accounts,
+                transactions,
+                budgets
+            ] = await Promise.all([
+                pool.query(
+                    `SELECT id, user_id, institution_name,
+                            provider, status
+                     FROM bank_connections
+                     WHERE user_id = $1`,
+                    [userId]
+                ),
+
+                pool.query(
+                    `SELECT id, user_id, name,
+                            account_type, scope,
+                            current_balance, currency
+                     FROM accounts
+                     WHERE user_id = $1
+                     AND ($2::boolean OR scope = 'personal')`,
+                    [
+                        userId,
+                        req.user.permissions.businessAccounts
+                    ]
+                ),
+
+                pool.query(
+                    `SELECT id, user_id, account_id,
+                            description, amount, kind,
+                            booked_on, scope, currency
+                     FROM transactions
+                     WHERE user_id = $1
+                     AND ($2::boolean OR scope = 'personal')`,
+                    [
+                        userId,
+                        req.user.permissions.businessAccounts
+                    ]
+                ),
+
+                pool.query(
+                    `SELECT id, user_id, month,
+                            expected_income, reserved_savings,
+                            scope, currency
+                     FROM budgets
+                     WHERE user_id = $1
+                     AND ($2::boolean OR scope = 'personal')`,
+                    [
+                        userId,
+                        req.user.permissions.businessAccounts
+                    ]
+                )
+            ]);
+
+            return res.json({
+                userId,
+                connections: connections.rows,
+                accounts: accounts.rows,
+                transactions: transactions.rows,
+                budgets: budgets.rows
+            });
+
+        } catch (error) {
+            console.error(
+                'Account data query failed:',
+                error.message
+            );
+
+            return res.status(503).json({
+                error: 'Unable to retrieve account data.'
+            });
+        }
+    }
+);
 
   app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
