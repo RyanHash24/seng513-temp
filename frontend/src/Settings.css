@@ -1,0 +1,153 @@
+
+.settings-page {
+    padding: 40px 44px;
+    min-height: 100vh;
+    box-sizing: border-box;
+    background: #071b15;
+    color: white;
+  }
+  
+  .settings-page h1 {
+    font-size: 34px;
+    margin: 0 0 18px;
+  }
+  
+  .settings-subtitle {
+    color: #9cafa6;
+    font-size: 16px;
+    margin-bottom: 36px;
+  }
+  
+  .settings-card {
+    background: #10271f;
+    border: 1px solid #254438;
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  
+  .settings-card h2 {
+    font-size: 20px;
+    margin: 0 0 10px;
+  }
+  
+  .settings-card > p {
+    color: #9cafa6;
+    margin: 0 0 26px;
+  }
+  
+  .settings-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  
+  .settings-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 15px;
+  }
+  
+  .settings-form input,
+  .settings-form select {
+    background: #0b1f18;
+    border: 1px solid #254438;
+    border-radius: 9px;
+    padding: 15px;
+    color: white;
+    font-size: 15px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .settings-form input:focus,
+  .settings-form select:focus {
+    outline: 1px solid #57d995;
+  }
+  
+  .settings-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  
+  .settings-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #254438;
+    cursor: pointer;
+  }
+  
+  .settings-toggle:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  
+  .settings-toggle span {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .settings-toggle strong {
+    font-size: 16px;
+  }
+  
+  .settings-toggle small {
+    color: #9cafa6;
+    font-size: 14px;
+  }
+  
+  .settings-toggle input {
+    width: 22px;
+    height: 22px;
+    accent-color: #57d995;
+    cursor: pointer;
+  }
+  
+  .settings-toggle input:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  .settings-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .settings-save {
+    background: #57d995;
+    color: #071b15;
+    border: none;
+    border-radius: 9px;
+    padding: 16px 26px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  
+  .settings-save:hover {
+    background: #43c783;
+  }
+  
+  .settings-success {
+    color: #57d995;
+    font-size: 15px;
+  }
+  
+  @media (max-width: 700px) {
+    .settings-page {
+      padding: 24px 18px;
+    }
+  
+    .settings-form {
+      grid-template-columns: 1fr;
+    }
+  }
+  
