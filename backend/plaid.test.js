@@ -29,6 +29,9 @@ async function fixture(t, options = {}) {
   const ownerContext = `${owner}:${connection}${savedEnvironment === 'production' ? ':production' : ''}`;
   const databaseQuery = async (sql, params) => {
     queries.push({ sql, params });
+    if (sql.includes('SELECT access_role, trial_ends_at')) return { rows: [{ access_role: options.accessRole || 'premium',
+      email_verified_at: options.emailVerified === false ? null : new Date() }] };
+    if (sql.includes('SELECT count(*) FROM bank_connections')) return { rows: [{ count: options.bankConnectionCount || 0 }] };
     if (sql.includes('FROM users')) return { rows: [{ id: params[0], access_role: 'premium' }] };
     if (sql.includes('INSERT INTO plaid_link_sessions')) {
       sessions.set(params[0], { id: params[0], user_id: params[1], mode: params[2], connection_id: params[3], encrypted_link_token: params[4], expires_at: params[5], plaid_environment: params[6], requested_product: params[7] });
@@ -128,6 +131,14 @@ test('exchange saves selected accounts for the authenticated owner and encrypts 
   const encrypted = queries.find(q => q.sql.includes('INSERT INTO plaid_item_secrets')).params[1];
   assert.equal(tokenCipher(config.encryptionKey).decrypt(encrypted, `${owner}:${connection}`), 'access-sandbox-private');
   assert.equal(queries.some(q => q.sql === 'COMMIT'), true);
+});
+
+test("new bank connections enforce the authenticated user's plan quota", async t => {
+  const { exchange, calls, queries } = await fixture(t, { accessRole: 'free', bankConnectionCount: 1 });
+  assert.equal((await exchange()).status, 403);
+  assert.equal(calls.some(call => call.url.endsWith('/item/public_token/exchange')), false);
+  assert.equal(queries.some(query => query.sql.includes('INSERT INTO bank_connections')), false);
+  assert.equal(queries.some(query => query.sql === 'ROLLBACK'), true);
 });
 
 test('failed account saves roll back and remove the newly exchanged Sandbox Item', async t => {

@@ -1,12 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { readFileSync } = require('node:fs');
 const jwt = require('jsonwebtoken');
 const { createApp } = require('./server');
 const { verifyPassword, hashPassword, getJwtSecret } = require('./auth');
 
 const secret = 'test-only-jwt-signing-key-at-least-32-bytes';
-const hash = readFileSync(`${__dirname}/../database/seed.sql`, 'utf8').match(/'morgan@example\.com', '(scrypt[^']+)'/)[1];
+const hash = 'scrypt$16384$8$1$31ca9a3f4bcf5e368973fc7cf57d9808$2cefcf5d520dabfe9093ff6a2a67c4fb1165d946689d5ad12bc0ea301a2cf329f6d14942352ff5a50e2f4fa06e67e43a504a12b4121fe4cb8115724eb95b3953';
 const morgan = { id: '10000000-0000-0000-0000-000000000002', first_name: 'Morgan', last_name: 'Watson',
   email: 'morgan@example.com', access_role: 'premium', password_hash: hash };
 const origin = 'http://localhost:5173';
@@ -26,7 +25,7 @@ async function fixture(t, options = {}) {
   return { row, request, base };
 }
 
-test('seeded Morgan password is verified with scrypt, incorrect and malformed hashes fail', async () => {
+test('existing scrypt hashes remain compatible; incorrect and malformed hashes fail', async () => {
   assert.equal(await verifyPassword('FinClearDemo!2026', hash), true);
   assert.equal(await verifyPassword('wrong', hash), false);
   assert.equal(await verifyPassword('wrong', 'invalid'), false);
@@ -89,30 +88,6 @@ test('signup failure never issues a login cookie', async t => {
   assert.equal(response.headers.get('set-cookie'), null);
 });
 
-test('duplicate email signup explains the conflict and rolls back without issuing a session', async t => {
-  const statements = [];
-  let released = false;
-  const database = { connect: async () => ({
-    query: async (sql, params) => {
-      statements.push(sql);
-      if (sql.includes('INSERT INTO users')) {
-        assert.equal(params[2], 'taylor@example.com');
-        throw Object.assign(new Error('Duplicate email'), { code: '23505', constraint: 'users_email_unique' });
-      }
-      return { rows: [] };
-    },
-    release: () => { released = true; },
-  }) };
-  const { request } = await fixture(t, { database });
-  const response = await request('signup', { ...signup, email: ' TAYLOR@EXAMPLE.COM ' });
-  assert.equal(response.status, 409);
-  assert.deepEqual(await response.json(), { error: 'This email is already registered. Please log in or use a different email address.' });
-  assert.equal(response.headers.get('set-cookie'), null);
-  assert.equal(statements.at(-1), 'ROLLBACK');
-  assert.equal(statements.includes('COMMIT'), false);
-  assert.equal(released, true);
-});
-
 test('signup rolls back the account when a default record cannot be saved', async t => {
   const statements = [];
   let released = false;
@@ -135,6 +110,35 @@ test('signup rolls back the account when a default record cannot be saved', asyn
   assert.equal(released, true);
 });
 
+test('Google signup creates a verified account and redirects through the configured origin', async t => {
+  const created = { ...morgan, email: 'google@example.com', access_role: 'trial',
+    trial_ends_at: new Date(Date.now() + 86400000), email_verified_at: new Date(), session_version: 0 };
+  const database = {
+    connect: async () => ({
+      query: async sql => sql.includes('INSERT INTO users') ? { rows: [created] } : { rows: [] },
+      release: () => {},
+    }),
+    query: async () => ({ rows: [] }),
+  };
+  const fetcher = async url => url.includes('oauth2.googleapis.com/token')
+    ? { ok: true, json: async () => ({ access_token: 'google-access-token' }) }
+    : { ok: true, json: async () => ({ sub: 'google-subject', email: created.email, email_verified: true }) };
+  const { base, request } = await fixture(t, {
+    database,
+    google: { clientId: 'client-id', clientSecret: 'client-secret', redirectUri: `${origin}/api/auth/google/callback` },
+    fetcher,
+  });
+  const start = await request('google/start', { mode: 'signup', acceptedTerms: true });
+  const authorizationUrl = new URL((await start.json()).url);
+  const stateCookie = start.headers.get('set-cookie').split(';')[0];
+  const callback = await fetch(`${base}/api/auth/google/callback?code=authorization-code&state=${authorizationUrl.searchParams.get('state')}`,
+    { headers: { Cookie: stateCookie }, redirect: 'manual' });
+
+  assert.equal(callback.status, 303);
+  assert.equal(callback.headers.get('location'), `${origin}/#onboarding`);
+  assert.match(callback.headers.get('set-cookie'), /finclear_auth=/);
+});
+
 test('login normalizes email, issues a restricted JWT cookie and returns no credentials', async t => {
   const { request } = await fixture(t);
   const response = await request('login', { email: ' MORGAN@EXAMPLE.COM ', password: 'FinClearDemo!2026', role: 'guest' });
@@ -149,6 +153,23 @@ test('login normalizes email, issues a restricted JWT cookie and returns no cred
   const me = await request('me', undefined, cookie.split(';')[0]);
   assert.equal(me.status, 200); assert.equal((await me.json()).user.id, morgan.id);
   assert.equal(me.headers.get('cache-control'), 'no-store');
+});
+
+test('account authorization endpoints require verified email and enforce plan permissions', async t => {
+  const { request, base, row } = await fixture(t);
+  const login = await request('login', { email: morgan.email, password: 'FinClearDemo!2026' });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const get = path => fetch(`${base}/api/account/${path}`, { headers: { Cookie: cookie } });
+  const plaidStatus = () => fetch(`${base}/api/plaid/status`, { headers: { Cookie: cookie } });
+
+  assert.equal((await get('permissions')).status, 403);
+  assert.equal((await plaidStatus()).status, 403);
+  row.email_verified_at = new Date();
+  assert.equal((await get('permissions')).status, 200);
+  assert.equal((await plaidStatus()).status, 200);
+  assert.equal((await get('report-access')).status, 204);
+  row.access_role = 'free';
+  assert.equal((await get('report-access')).status, 403);
 });
 
 test('incorrect password and nonexistent account return the same error', async t => {

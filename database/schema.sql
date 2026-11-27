@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
     phone text,
     avatar_url text,
     email_verified_at timestamptz,
+    session_version integer NOT NULL DEFAULT 0,
+    google_subject text,
     access_role text NOT NULL DEFAULT 'trial' CHECK (access_role IN ('guest', 'free', 'trial', 'premium')),
     trial_ends_at timestamptz,
     premium_ends_at timestamptz,
@@ -23,6 +25,16 @@ CREATE TABLE IF NOT EXISTS users (
     CHECK (access_role <> 'trial' OR trial_ends_at IS NOT NULL)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON users (email) WHERE email IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS users_google_subject_unique ON users (google_subject) WHERE google_subject IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS auth_tokens (
+    token_hash text PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    purpose text NOT NULL CHECK (purpose IN ('verify', 'reset')),
+    expires_at timestamptz NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS auth_tokens_user_idx ON auth_tokens(user_id, purpose);
 
 CREATE TABLE IF NOT EXISTS user_settings (
     user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

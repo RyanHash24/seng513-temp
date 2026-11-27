@@ -4,6 +4,7 @@ const { rateLimit } = require('express-rate-limit');
 const { syncTransactions } = require('./plaid-sync');
 const { syncInvestments } = require('./plaid-investments');
 const { spendingQuery, readBudgetSpending } = require('./budget-spending');
+const { checkQuota } = require('./entitlements');
 
 function tokenCipher(hexKey) {
   if (!/^[a-f0-9]{64}$/i.test(hexKey || '')) throw new Error('PLAID_TOKEN_ENCRYPTION_KEY must be 64 hexadecimal characters.');
@@ -209,6 +210,9 @@ function createPlaid(pool, requireAuth, config = {}, fetchImpl = fetch) {
           WHERE user_id=$1 AND provider='plaid' AND (provider_institution_id=$2 OR provider_institution_id IS NULL)
           AND plaid_environment=$3`, [req.user.id, institutionId, environment]);
         if (existing.length) throw problem(409, 'This bank is already linked. Use Reconnect on the existing connection.', existing[0].id);
+        if (!await checkQuota(client, req.user.id, 'bankConnections')) {
+          throw problem(403, 'Your plan has reached its bank connection limit.');
+        }
         const exchanged = await request('/item/public_token/exchange', { public_token: publicToken });
         accessToken = checkToken(exchanged.access_token, 'access'); cleanup = true;
         ({ rows: [connection] } = await client.query(`INSERT INTO bank_connections
