@@ -260,7 +260,13 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
         return res.redirect(303, `${origin}/#onboarding`);
       }
       return res.redirect(303, `${origin}/`);
-    } catch { return fail(); }
+    } catch (error) {
+      console.error('Google OAuth callback failed:', {
+        name: error?.name,
+        code: error?.code
+      });
+      return fail();
+    }
   });
   router.get('/me', requireAuth, (req, res) => res.json({ user: req.user }));
   router.post('/logout', (req, res) => { res.clearCookie(COOKIE, cookieOptions); res.sendStatus(204); });
