@@ -1,7 +1,4 @@
 
-.linked-accounts { list-style: none; padding: 0; display: grid; gap: 12px; }
-.linked-accounts li { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 16px; border: 1px solid #254438; border-radius: 9px; }
-.linked-accounts li span { color: #9cafa6; }
 .settings-page {
     padding: 40px 44px;
     min-height: 100vh;
@@ -153,3 +150,4 @@
       grid-template-columns: 1fr;
     }
   }
+  

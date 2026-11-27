@@ -1,68 +1,101 @@
 const { Pool } = require('pg');
-const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const { demoFileHandler } = require('./demoFiles');
 const express = require('express');
 const { createAuth, getJwtSecret } = require('./auth');
 const { configuredMailer } = require('./account-flows');
-const { createPlaid } = require('./plaid');
 const PORT = 3000;
 
-const DOWNLOAD_URL_EXPIRATION_SECONDS = 300;
-const s3Client = new S3Client({ region: process.env.S3_REGION || process.env.AWS_REGION || 'us-east-1' });
-
-async function generatePresignedDownloadUrl(bucket, key) {
-  if (!bucket || !key) throw new TypeError('Both bucket and key are required');
-  return getSignedUrl(s3Client, new GetObjectCommand({ Bucket: bucket, Key: key }),
-    { expiresIn: DOWNLOAD_URL_EXPIRATION_SECONDS });
-}
-
-function attachDownloads(app, requireAuth, allowedOrigin) {
-  app.use('/api/demo-files', (req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin && origin === allowedOrigin) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Vary', 'Origin');
-    }
-    if (req.method === 'OPTIONS') {
-      if (origin !== allowedOrigin) return res.sendStatus(403);
-      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-      return res.sendStatus(204);
-    }
-    if (origin && origin !== allowedOrigin) return res.sendStatus(403);
-    next();
-  });
-  app.get('/api/demo-files/:name', demoFileHandler);
-  function handlePresignedDownload(req, res) {
-    const bucket = req.query.bucket || process.env.S3_BUCKET;
-    const key = req.query.key || process.env.S3_KEY;
-    if (!bucket || !key) return res.status(400).json({ error: 'Specify bucket and key, or configure S3_BUCKET and S3_KEY' });
-    generatePresignedDownloadUrl(bucket, key)
-      .then(url => res.json({ url, bucket, key, expiresInSeconds: DOWNLOAD_URL_EXPIRATION_SECONDS }))
-      .catch(error => {
-        console.error('Failed to generate presigned download URL:', error);
-        res.status(500).json({ error: 'Failed to generate presigned download URL' });
-      });
-  }
-  app.get('/s3/presigned-download', requireAuth, handlePresignedDownload);
-  app.get('/presigned-download', requireAuth, handlePresignedDownload);
-}
-
-
-function createApp(pool, authOptions, plaidOptions) {
+function createApp(pool, authOptions) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '8kb' }));
   const auth = createAuth(pool, authOptions);
   app.use('/api/auth', auth.router);
-  const requireVerifiedAuth = (req, res, next) => auth.requireAuth(req, res, () =>
-    auth.requireVerified(req, res, next));
-  app.get('/api/account/permissions', auth.requireAuth, auth.requireVerified, (req, res) => res.json(req.user.permissions));
-  app.get('/api/account/report-access', auth.requireAuth, auth.requireVerified,
-    auth.requirePermission('monthlyReports'), (req, res) => res.sendStatus(204));
-  attachDownloads(app, requireVerifiedAuth, authOptions?.origins?.[0] || process.env.FRONTEND_ORIGIN || 'http://localhost:5173');
-  app.use('/api/plaid', createPlaid(pool, requireVerifiedAuth, { origins: authOptions?.origins, ...plaidOptions }));
+  app.get('/api/account/permissions', auth.requireAuth, auth.requireVerified, (req,res)=>res.json(req.user.permissions));
+  app.get('/api/account/report-access', auth.requireAuth, auth.requireVerified, auth.requirePermission('monthlyReports'), (req,res)=>res.sendStatus(204));
+  app.get(
+    '/api/account/data',
+    auth.requireAuth,
+    auth.requireVerified,
+    async (req, res) => {
+        const userId = req.user.id;
+
+        res.set('Cache-Control', 'no-store');
+
+        try {
+            const [
+                connections,
+                accounts,
+                transactions,
+                budgets
+            ] = await Promise.all([
+                pool.query(
+                    `SELECT id, user_id, institution_name,
+                            provider, status
+                     FROM bank_connections
+                     WHERE user_id = $1`,
+                    [userId]
+                ),
+
+                pool.query(
+                    `SELECT id, user_id, name,
+                            account_type, scope,
+                            current_balance, currency
+                     FROM accounts
+                     WHERE user_id = $1
+                     AND ($2::boolean OR scope = 'personal')`,
+                    [
+                        userId,
+                        req.user.permissions.businessAccounts
+                    ]
+                ),
+
+                pool.query(
+                    `SELECT id, user_id, account_id,
+                            description, amount, kind,
+                            booked_on, scope, currency
+                     FROM transactions
+                     WHERE user_id = $1
+                     AND ($2::boolean OR scope = 'personal')`,
+                    [
+                        userId,
+                        req.user.permissions.businessAccounts
+                    ]
+                ),
+
+                pool.query(
+                    `SELECT id, user_id, month,
+                            expected_income, reserved_savings,
+                            scope, currency
+                     FROM budgets
+                     WHERE user_id = $1
+                     AND ($2::boolean OR scope = 'personal')`,
+                    [
+                        userId,
+                        req.user.permissions.businessAccounts
+                    ]
+                )
+            ]);
+
+            return res.json({
+                userId,
+                connections: connections.rows,
+                accounts: accounts.rows,
+                transactions: transactions.rows,
+                budgets: budgets.rows
+            });
+
+        } catch (error) {
+            console.error(
+                'Account data query failed:',
+                error.message
+            );
+
+            return res.status(503).json({
+                error: 'Unable to retrieve account data.'
+            });
+        }
+    }
+);
 
   app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
@@ -91,18 +124,12 @@ if (require.main === module) {
   const app = createApp(new Pool(), {
     secret: getJwtSecret(), production, trialDays: Number(process.env.TRIAL_DAYS || 14),
     origins: process.env.FRONTEND_ORIGIN ? [process.env.FRONTEND_ORIGIN] : undefined,
-    mailer: configuredMailer({ production, apiKey: process.env.RESEND_API_KEY, from: process.env.MAIL_FROM, devLinks: process.env.DEV_AUTH_LINKS === 'true' }),
-    google: { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET, redirectUri: process.env.GOOGLE_REDIRECT_URI },
-  }, {
-    env: process.env.PLAID_ENV, clientId: process.env.PLAID_CLIENT_ID,
-    secret: process.env.PLAID_SECRET, sandboxSecret: process.env.PLAID_SANDBOX_SECRET,
-    productionSecret: process.env.PLAID_PRODUCTION_SECRET,
-    productionEnabled: process.env.PLAID_PRODUCTION_ENABLED === 'true',
-    encryptionKey: process.env.PLAID_TOKEN_ENCRYPTION_KEY,
+    mailer: configuredMailer({production,apiKey:process.env.RESEND_API_KEY,from:process.env.MAIL_FROM,devLinks:process.env.DEV_AUTH_LINKS==='true'}),
+    google: {clientId:process.env.GOOGLE_CLIENT_ID,clientSecret:process.env.GOOGLE_CLIENT_SECRET,redirectUri:process.env.GOOGLE_REDIRECT_URI},
   });
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
   });
 }
-module.exports = { createApp, generatePresignedDownloadUrl };
+module.exports = { createApp };
 

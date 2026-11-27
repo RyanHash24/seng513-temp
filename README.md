@@ -1,3 +1,4 @@
+
 # FinClear
 SENG 513 – Group 8
 
@@ -5,11 +6,11 @@ Web-Based Systems – Fall 2026
 
 ## Project Overview
 
-Welcome to **FinClear**, our financial management application. This repository contains the frontend and backend for the full-stack project.
+
+Welcome to **FinClear**, our financial management application. This repository will contain both the frontend and backend for this full-stack project. 
 
 ### Planned Tech Stack
-
-The following stack is planned for implementation.
+The following stack will be used for implementation
 
 #### Frontend
 - React Vite
@@ -39,7 +40,7 @@ The following stack is planned for implementation.
 
 ## Getting Started with Docker
 
-Docker Compose runs the backend and PostgreSQL database. The frontend runs separately with Vite.
+The easiest way to run the backend and database is with Docker. To get started, you need Docker Desktop installed and running before proceeding.
 
 ### 1. Verify Docker is installed
 
@@ -52,66 +53,38 @@ docker info
 ### 2. Clone the repository
 
 ```bash
-git clone https://github.com/RyanHash24/seng513-temp.git
-cd seng513-temp
+git clone https://csgit.ucalgary.ca/seng513f26/pg-8/seng513-202604-pg-8.git
+cd seng513-202604-pg-8
 ```
 
 ### 3. Configure environment variables
 
-Copy the template:
+- Copy the template file:
 
-```bash
-cp .env.example .env
-```
+  ```bash
+  cp .env.example .env
+  ```
 
-Set a unique local database password in `.env`:
+- Open `.env` and set a secure database password:
 
-```dotenv
-POSTGRES_PASSWORD=<your-password>
-```
+  ```dotenv
+  POSTGRES_PASSWORD=<your-password>
+  ```
 
-For stable local sessions, set `JWT_SECRET` to a random value of at least 32 bytes. Keep `.env` private and out of Git.
+  **Note:** Replace `<your-password>` with your chosen password.
 
-### 4. Start and initialize the database
+### 4. Start the development environment
 
-Start PostgreSQL and wait for it to be ready:
+Run:
 
 ```bash
 docker compose config --quiet
-docker compose up -d database
-docker compose exec database pg_isready -U seng513 -d seng513
+docker compose up -d --build
 ```
 
-On a fresh database, apply the schema and all migrations:
+This will build the backend image and start both the backend and database.
 
-```bash
-docker compose exec -T database psql -U seng513 -d seng513 -v ON_ERROR_STOP=1 < database/schema.sql
-for migration in database/migrations/*.sql; do
-  docker compose exec -T database psql -U seng513 -d seng513 -v ON_ERROR_STOP=1 < "$migration"
-done
-```
-
-For an existing database, back it up and confirm it uses the expected UUID-based schema before applying migrations. Do not reset or replace an existing database to resolve a schema mismatch.
-
-### 5. Start the backend and frontend
-
-Build and start the backend:
-
-```bash
-docker compose up -d --build backend
-```
-
-In another terminal, run the frontend:
-
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
-Open <http://localhost:5173>. Vite proxies `/api` requests to the backend at `http://localhost:3001`.
-
-### 6. Verify the application
+### 5. Verify the application
 
 Check running containers:
 
@@ -143,54 +116,48 @@ Expected result:
 {"database":"connected"}
 ```
 
+Optional database readiness check:
+
+```bash
+docker compose exec database pg_isready -U seng513 -d seng513
+```
+
+### 6. Run the production configuration
+
+Validate the production configuration:
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml config --quiet
+```
+
+Start it:
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+```
+
+The production configuration sets `NODE_ENV=production` and enables automatic container restart policies.
+
 ### 7. Stop the containers
+
+Development:
 
 ```bash
 docker compose down
 ```
 
-This keeps the database volume. `docker compose down -v` removes the persisted database data.
+Production:
 
-### Production configuration
-
-The repository currently has no `compose.prod.yaml`; `compose.yaml` is configured for development. Do not use it as a production deployment. Production requires HTTPS, production-grade secret storage, a configured email sender, a deployed `FRONTEND_ORIGIN`, and `NODE_ENV=production`.
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml down
+```
 
 ## Password and Secrets Strategy
 
-- Sensitive credentials belong in a local `.env` file, not in source code or committed configuration.
-- `.env` is ignored by Git via `.gitignore`; `.env.example` documents the variables used by the app.
+- Sensitive credentials are stored in a local `.env` file instead of being hardcoded in source code or committed configuration files.
+- The `.env` file is ignored by Git via `.gitignore`, preventing the accidental exposure of passwords.
+- The repository includes `.env.example`, so developers know which environment variables must be created locally.
 - Docker Compose reads `POSTGRES_PASSWORD` from `.env` and injects it into the backend and database containers.
-- The backend connects to PostgreSQL using the Docker Compose service name and environment variables.
-- Use separate production credentials and a secrets-management solution for a real deployment; do not reuse local credentials.
-- If the database password changes after PostgreSQL initializes its persistent volume, update the password inside PostgreSQL too. Changing only `.env` is not enough.
-
-## Account Access and Plaid
-
-Authentication uses scrypt password hashes and HttpOnly JWT cookies. Email signup requires verification; password recovery uses one-time tokens. Google OAuth is optional. Unverified users cannot use protected Plaid or download routes, and backend routes enforce report permissions and bank-connection plan limits.
-
-For local email verification and password recovery, set `DEV_AUTH_LINKS=true`; the backend logs development-only links. Never enable this setting in production. Real email delivery requires `RESEND_API_KEY` and `MAIL_FROM`.
-
-Google sign-in requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`, with the same redirect URI registered with Google. The local example uses the frontend's Vite proxy at `http://localhost:5173/api/auth/google/callback`.
-
-Plaid linking uses Sandbox by default. Configure `PLAID_CLIENT_ID`, the relevant Plaid secret, and a 64-character hexadecimal `PLAID_TOKEN_ENCRYPTION_KEY`. Production Plaid credentials are disabled unless `PLAID_PRODUCTION_ENABLED=true`. AWS settings are optional and only needed for S3-backed downloads.
-
-The database schema and migrations are in `database/`. For a fresh database, apply `database/schema.sql` followed by migrations `001_signup_consents.sql` through `006_account_access.sql` in numeric order. Migrations `002`–`005` add Plaid support; `006` adds the account-access session, Google identity, and token schema. Back up existing databases and check schema compatibility before applying migrations.
-
-## Development Checks
-
-Run backend tests:
-
-```bash
-cd backend
-npm ci
-npm test
-```
-
-Build and lint the frontend:
-
-```bash
-cd frontend
-npm ci
-npm run build
-npm run lint
-```
+- The backend connects to PostgreSQL through the Docker Compose service names and environment variables.
+- For a real production deployment, separate production credentials and a proper secrets-management solution should be used instead of the shared local `.env` file.
+- If the database password is changed after PostgreSQL has initialized its persistent volume, the password must be updated inside PostgreSQL. Changing just `.env` won't be enough.

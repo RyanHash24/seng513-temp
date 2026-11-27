@@ -1,6 +1,7 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./SavingsGoals.css";
+import type { AuthUser } from "./auth";
 
 type Goal = {
   id: number;
@@ -10,8 +11,11 @@ type Goal = {
   deadline: string;
 };
 
-export default function SavingsGoals() {
-  const [goals, setGoals] = useState<Goal[]>([
+export default function SavingsGoals({user}: {user: AuthUser}) {
+  const key = `finclear-goals-${user.id}`;
+  const [goals, setGoals] = useState<Goal[]>(() => {
+    try { const saved=localStorage.getItem(key); if(saved) return JSON.parse(saved); } catch { /* demo fallback */ }
+    return [
     {
       id: 1,
       name: "Emergency Fund",
@@ -26,7 +30,9 @@ export default function SavingsGoals() {
       saved: 800,
       deadline: "2027-03-01",
     },
-  ]);
+  ]; });
+  useEffect(()=>{localStorage.setItem(key,JSON.stringify(goals));},[key,goals]);
+  const atLimit = user.permissions.maxSavingsGoals !== null && goals.filter(g=>g.saved<g.target).length >= user.permissions.maxSavingsGoals;
 
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
@@ -34,6 +40,7 @@ export default function SavingsGoals() {
 
   function addGoal(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (atLimit) return;
 
     if (!name.trim() || Number(target) <= 0 || !deadline) {
       return;
@@ -121,6 +128,7 @@ export default function SavingsGoals() {
 
       <section className="savings-section">
         <h2>Create New Goal</h2>
+        {atLimit && <p>Your active goal limit is reached. Complete or delete a goal to add another.</p>}
 
         <form className="goal-form" onSubmit={addGoal}>
           <input
@@ -147,7 +155,7 @@ export default function SavingsGoals() {
             required
           />
 
-          <button type="submit" className="goal-primary">
+          <button type="submit" className="goal-primary" disabled={atLimit}>
             + Add Goal
           </button>
         </form>
