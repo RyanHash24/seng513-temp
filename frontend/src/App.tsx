@@ -3,6 +3,7 @@ import "@fontsource-variable/inter";
 import Accounts from "./Accounts";
 import Budgets from "./Budgets";
 import BusinessReports from "./BusinessReports";
+import { useBudgetPlan } from "./useBudgetPlan";
 import WorkspaceOverview from "./WorkspaceOverview";
 import { useSavedAccounts } from "./useSavedAccounts";
 import AuthGate from "./AuthGate";
@@ -428,6 +429,7 @@ function Workspace({ user, logout, onAccountDeleted, onSessionEnded, onPasswordC
   const [budgetEditorMode, setBudgetEditorMode] = useState<"create" | "edit" | "replace" | null>(null);
   const [connectAccountOnOpen, setConnectAccountOnOpen] = useState(false);
   const savedAccounts = useSavedAccounts();
+  const savedBudget = useBudgetPlan(user.id, page === "dashboard" || page === "budgets");
   const [settingsSection, setSettingsSection] = useState(defaultSettingsSection);
   const [collapsed, setCollapsed] = useState(false);
   const [panel, setPanel] = useState<Panel | null>(null);
@@ -728,7 +730,7 @@ function Workspace({ user, logout, onAccountDeleted, onSessionEnded, onPasswordC
 
         {page === "dashboard" && (
           <WorkspaceOverview
-            userId={user.id}
+            savedBudget={savedBudget}
             accounts={savedAccounts}
             onCreateBudget={() => { navigate("budgets"); setCreateBudgetOnOpen(true); }}
             onReviewBudget={() => navigate("budgets")}
@@ -736,7 +738,7 @@ function Workspace({ user, logout, onAccountDeleted, onSessionEnded, onPasswordC
             onViewAccounts={() => navigate("accounts")}
           />
         )}
-        {page === "budgets" && <Budgets onEditorModeChange={setBudgetEditorMode} userId={user.id} initialCreate={createBudgetOnOpen} onConnectAccount={() => navigate("accounts")} />}
+        {page === "budgets" && <Budgets savedBudget={savedBudget} savedAccounts={savedAccounts} onEditorModeChange={setBudgetEditorMode} initialCreate={createBudgetOnOpen} onConnectAccount={() => navigate("accounts")} />}
         {page === "transactions" && <Transactions userId={user.id} hasLinkedAccounts={savedAccounts.accounts.length > 0} onViewAccounts={() => navigate("accounts")} />}
         {page === "accounts" && <Accounts connectOnOpen={connectAccountOnOpen} />}
         {page === "reports" && <BusinessReports onViewBudget={() => navigate("budgets")} onViewAccounts={() => navigate("accounts")} hasLinkedAccounts={savedAccounts.accounts.length > 0} accountsLoading={savedAccounts.loading} accountsError={savedAccounts.error} onRetryAccounts={savedAccounts.reload} />}

@@ -6,6 +6,7 @@ const express = require('express');
 const { createAuth, getJwtSecret } = require('./auth');
 const { configuredMailer } = require('./account-flows');
 const { createPlaid } = require('./plaid');
+const { createBudgetPlans } = require('./budget-plans');
 const { createPrivacy } = require('./privacy');
 const { createSecurity } = require('./security');
 const PORT = 3000;
@@ -55,6 +56,7 @@ function attachDownloads(app, requireAuth, allowedOrigin) {
 function createApp(pool, authOptions, plaidOptions) {
   const app = express();
   app.disable('x-powered-by');
+  app.use('/api/budget-plan', express.json({ limit: '256kb' }));
   app.use(express.json({ limit: '8kb' }));
   const auth = createAuth(pool, authOptions);
   app.use('/api/auth', auth.router);
@@ -66,6 +68,7 @@ function createApp(pool, authOptions, plaidOptions) {
   }));
   const requireVerifiedAuth = (req, res, next) => auth.requireAuth(req, res, () =>
     auth.requireVerified(req, res, next));
+  app.use('/api/budget-plan', createBudgetPlans(pool, requireVerifiedAuth, { origins: authOptions?.origins, environment: plaidOptions?.env }));
   app.get('/api/account/permissions', auth.requireAuth, auth.requireVerified, (req, res) => res.json(req.user.permissions));
   app.get('/api/account/report-access', auth.requireAuth, auth.requireVerified,
     auth.requirePermission('monthlyReports'), (req, res) => res.sendStatus(204));

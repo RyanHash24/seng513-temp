@@ -11,16 +11,20 @@ export function budgetStorageKey(userId: string) {
 }
 
 // The old global key has no owner, so it must never become a new user's plan.
-// Replace this adapter with the budget API when database persistence is connected.
-export function loadBudgetPlan(userId: string, storage: Pick<Storage, 'getItem'> = localStorage): BudgetPlan | null {
+// Used only to recover an owner-specific plan saved before server persistence.
+export function loadBudgetPlan(userId: string, storage?: Pick<Storage, 'getItem'>): BudgetPlan | null {
   try {
-    const raw = storage.getItem(budgetStorageKey(userId));
+    const raw = (storage ?? localStorage).getItem(budgetStorageKey(userId));
     if (!raw) return null;
     const plan = JSON.parse(raw) as BudgetPlan | null;
     if (!plan || typeof plan.start !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(plan.start) ||
+        !Number.isFinite(Date.parse(plan.start)) || new Date(plan.start).toISOString().slice(0, 10) !== plan.start ||
         !Number.isSafeInteger(plan.budget) || plan.budget <= 0 || !Array.isArray(plan.categories) ||
         plan.categories.some(category => !category || typeof category.name !== 'string' ||
-          !Number.isSafeInteger(category.id) || !Number.isSafeInteger(category.allocation) || category.allocation < 0) ||
+          !Number.isSafeInteger(category.id) || !Number.isSafeInteger(category.allocation) || category.allocation < 0 ||
+          (category.subcategory !== undefined && typeof category.subcategory !== 'string') ||
+          (category.targets !== undefined && (!Array.isArray(category.targets) || category.targets.some(t =>
+            !t || typeof t.name !== 'string' || !Number.isSafeInteger(t.cents) || t.cents < 0)))) ||
         (plan.accountIds !== undefined && (!Array.isArray(plan.accountIds) || plan.accountIds.some(id => typeof id !== 'string')))) return null;
     return plan;
   } catch { return null; }

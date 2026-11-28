@@ -1,17 +1,20 @@
-import { loadBudgetPlan } from './budgetState';
+import type { SavedBudget } from './useBudgetPlan';
 import type { useSavedAccounts } from './useSavedAccounts';
 import WorkspaceEmptyState, { EmptyStateCard } from './WorkspaceEmptyState';
 
-export default function WorkspaceOverview({ userId, accounts, onCreateBudget, onReviewBudget, onConnectAccount, onViewAccounts }: {
-  userId: string; accounts: ReturnType<typeof useSavedAccounts>;
+export default function WorkspaceOverview({ savedBudget, accounts, onCreateBudget, onReviewBudget, onConnectAccount, onViewAccounts }: {
+  savedBudget: SavedBudget; accounts: ReturnType<typeof useSavedAccounts>;
   onCreateBudget: () => void; onReviewBudget: () => void; onConnectAccount: () => void; onViewAccounts: () => void;
 }) {
-  const plan = loadBudgetPlan(userId);
+  const plan = savedBudget.snapshot?.plan;
   const count = accounts.accounts.length;
   const budget = plan ? new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(plan.budget / 100) : null;
   return <WorkspaceEmptyState label="Overview">
-    {plan ? <EmptyStateCard title="Your monthly plan" action="Review your budget" onAction={onReviewBudget}>
+    {savedBudget.error && <div role="alert"><EmptyStateCard title="Unable to refresh your budget" action="Try again" onAction={savedBudget.reload}><p>{savedBudget.error}</p></EmptyStateCard></div>}
+    {!savedBudget.snapshot ? (!savedBudget.error && <p role="status">Loading your budget…</p>) : plan ? <EmptyStateCard title="Your monthly plan" action="Review your budget" onAction={onReviewBudget}>
       <p>Your spending limit is {budget}. Review your allocations and included accounts in Budget.</p>
+    </EmptyStateCard> : savedBudget.legacy ? <EmptyStateCard title="A budget is saved in this browser" action="Review saved plan" onAction={onReviewBudget}>
+      <p>Review this plan and save it to your account to use it across devices.</p>
     </EmptyStateCard> : <EmptyStateCard title="No budget set yet" action="Create a new budget" onAction={onCreateBudget}>
       <p>Choose your monthly spending limit, select accounts to track and assign money to your categories.</p>
     </EmptyStateCard>}

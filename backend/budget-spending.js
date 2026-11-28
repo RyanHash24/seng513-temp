@@ -96,4 +96,4 @@ async function readBudgetSpending(pool, userId, environment, filter) {
   return { entries, spent };
 }
 
-module.exports = { spendingQuery, spendingCategory, spendingEntry, readBudgetSpending };
+module.exports = { validDate, uuid, spendingQuery, spendingCategory, spendingEntry, readBudgetSpending };

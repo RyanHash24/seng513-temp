@@ -17,6 +17,7 @@ const EXPORT_TABLES = [
   ['transactions', 'transactions', 'id, account_id, category_id, original_category_id, category_overridden, amount, currency, kind, status, scope, description, merchant_name, notes, booked_on, authorized_on, imported_at, created_at, provider_category, provider_synced_at'],
   ['investmentTransactions', 'investment_transactions', 'id, account_id, booked_on, description, activity_type, activity_subtype, security_name, ticker_symbol, quantity, price, fees, amount, currency, unofficial_currency, provider_synced_at'],
   ['budgets', 'budgets', 'id, month, scope, currency, expected_income, reserved_savings, created_at'],
+  ['monthlyBudgetPlans', 'monthly_budget_plans', 'environment, revision, starts_on, limit_cents, categories, account_ids, saved_at'],
   ['budgetAllocations', 'budget_allocations', 'budget_id, category_id, allocated_amount'],
   ['savingsGoals', 'savings_goals', 'id, name, currency, target_amount, target_date, monthly_contribution, status, created_at'],
   ['savingsContributions', 'savings_contributions', 'id, goal_id, currency, amount, contributed_on, notes'],

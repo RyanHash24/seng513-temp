@@ -1,14 +1,15 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { useSavedAccounts } from "./useSavedAccounts";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import type { SavedBudget, BudgetVersion } from "./useBudgetPlan";
+import type { useSavedAccounts } from "./useSavedAccounts";
 import { useBudgetSpending } from "./useBudgetSpending";
-import { budgetStorageKey, currentDay, loadBudgetPlan, type BudgetPlan as Plan, type BudgetCategory as Category, type Target } from "./budgetState";
+import { currentDay, type BudgetPlan as Plan, type BudgetCategory as Category, type Target } from "./budgetState";
 import BudgetEmptyState from "./BudgetEmptyState";
 import BudgetScheduledState from "./BudgetScheduledState";
 import { getBudgetCycle as getCycle } from "./budgetCycle";
 import BudgetPlanEditor from "./BudgetPlanEditor";
 import BudgetSpendingCategories from "./BudgetSpendingCategories";
 import { spendingInCycle, type BudgetSpendingEntry as SpendingEntry } from "./budgetSpendingData";
-import { allocationError, scaleTargets, type PlanEditorState as Editor } from "./budgetEditorState";
+import { allocationError, scaleTargets, type PlanEditorState } from "./budgetEditorState";
 import "./Budgets.css";
 
 const REPORT_URL = "http://localhost:7070/api/reports/monthly";
@@ -307,20 +308,25 @@ function SpendingChart({ entries }: { entries: SpendingEntry[] }) {
   );
 }
 
-export default function Budgets({ userId, initialCreate = false, onConnectAccount, onEditorModeChange }: {
-  userId: string; initialCreate?: boolean; onConnectAccount: () => void; onEditorModeChange?: (mode: Editor["mode"] | null) => void;
+type Editor = PlanEditorState & { base: BudgetVersion; imported: boolean };
+
+export default function Budgets({ savedBudget, savedAccounts, initialCreate = false, onConnectAccount, onEditorModeChange }: {
+  savedBudget: SavedBudget; savedAccounts: ReturnType<typeof useSavedAccounts>; initialCreate?: boolean; onConnectAccount: () => void; onEditorModeChange?: (mode: Editor["mode"] | null) => void;
 }) {
   const today = currentDay();
-  const { accounts, status, loading, error, reload } = useSavedAccounts();
+  const { accounts, status, loading, error, reload } = savedAccounts;
   const budgetAccounts = accounts.filter(account => account.currency === 'CAD' &&
     ['cash', 'chequing', 'savings', 'credit_card'].includes(account.accountType)).map(account => ({
     id: account.id, name: account.name, lastFour: account.mask,
     status: account.connectionStatus === 'connected' ? 'Connected' : 'Reconnect',
   }));
   const connectedIds = budgetAccounts.filter(account => account.status === 'Connected').map(account => account.id);
-  const [plan, setPlan] = useState(() => loadBudgetPlan(userId));
-  const [editor, setEditor] = useState<Editor | null>(() => initialCreate
-    ? { mode: 'create', start: today, budget: '', categories: [], accountIds: [] } : null);
+  const { snapshot, legacy } = savedBudget;
+  const plan = snapshot?.plan ?? null;
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [editor, setEditor] = useState<Editor | null>(() => initialCreate && snapshot && !plan && !legacy
+    ? { mode: 'create', start: today, budget: '', categories: [], accountIds: connectedIds, base: { revision: snapshot.revision, environment: snapshot.environment }, imported: false } : null);
   const [planError, setPlanError] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
@@ -339,11 +345,12 @@ export default function Budgets({ userId, initialCreate = false, onConnectAccoun
   const extraNames = [...new Set(entries.map(entry => entry.name))].filter(name => !plan?.categories.some(category => category.name.toLowerCase() === name.toLowerCase()));
   const displayCategories = [...(plan?.categories ?? []), ...extraNames.map((name, index) => ({ id: -index - 1, name, allocation: 0 }))];
 
-  function openEditor(mode: Editor["mode"]) {
-    const existing = mode === "edit" ? plan : null;
+  function openEditor(mode: Editor["mode"], imported = false) {
+    if (!snapshot) return;
+    const existing = imported ? legacy : mode === "edit" ? plan : null;
 
     setEditor({
-      mode,
+      mode, base: { revision: snapshot.revision, environment: snapshot.environment }, imported,
       start: existing?.start ?? today,
       budget: existing ? String(existing.budget / 100) : "",
       accountIds: existing?.accountIds ?? connectedIds,
@@ -356,14 +363,14 @@ export default function Budgets({ userId, initialCreate = false, onConnectAccoun
     setPlanError("");
   }
 
-  function updateEditor(changes: Partial<Editor>) {
+  function updateEditor(changes: Partial<PlanEditorState>) {
     setEditor((current) => current ? { ...current, ...changes } : current);
     setPlanError("");
   }
 
-  function savePlan(event: FormEvent<HTMLFormElement>) {
+  async function savePlan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!editor) return;
+    if (!editor || savingRef.current || !snapshot) return;
 
     const budget = toCents(editor.budget);
     const categories = editor.categories.map(({ id, name, allocation, targets }) => {
@@ -383,15 +390,19 @@ export default function Budgets({ userId, initialCreate = false, onConnectAccoun
       return;
     }
 
-    const accountIds = editor.accountIds.filter((id) => connectedIds.includes(id));
+    const accountIds = editor.accountIds;
     const nextPlan: Plan = { start: editor.start, budget, categories, accountIds };
+    savingRef.current = true;
+    setSaving(true);
     try {
-      localStorage.setItem(budgetStorageKey(userId), JSON.stringify(nextPlan));
-      setPlan(nextPlan);
+      await savedBudget.save(nextPlan, editor.base, editor.imported);
       setEditor(null);
       setPlanError("");
-    } catch {
-      setPlanError("Could not save this plan in your browser.");
+    } catch (cause) {
+      setPlanError(cause instanceof Error ? cause.message : "Unable to save your budget. Please try again.");
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   }
 
@@ -443,12 +454,37 @@ export default function Budgets({ userId, initialCreate = false, onConnectAccoun
     }
   }
 
-  if (editor) return <BudgetPlanEditor
-    editor={editor} accounts={budgetAccounts} loading={loading} accountError={error}
+  const retryNotice = savedBudget.error && <div className="budget-panel" role="alert">
+    <p>{savedBudget.error}</p><button type="button" onClick={savedBudget.reload}>Try again</button>
+  </div>;
+  if (!snapshot) return <div className="budgets-page">{retryNotice || <p role="status">Loading your budget…</p>}</div>;
+
+  const stale = editor && (editor.base.revision !== snapshot.revision || editor.base.environment !== snapshot.environment);
+  const missingIds = editor?.accountIds.filter(id => !budgetAccounts.some(account => account.id === id)) ?? [];
+  const editorNotice = <>
+    {stale && <section className="budget-panel" role="status">
+      <p>This plan changed on another device. Your draft is still open.</p>
+      <button type="button" onClick={() => openEditor(plan ? 'edit' : 'create')}>Reopen latest plan</button>
+    </section>}
+    {!loading && !error && editor && missingIds.length > 0 && <section className="budget-panel" role="alert">
+      <p>This draft includes {missingIds.length} unavailable {missingIds.length === 1 ? 'account' : 'accounts'}.</p>
+      <button type="button" onClick={() => updateEditor({ accountIds: editor.accountIds.filter(id => !missingIds.includes(id)) })}>Remove unavailable accounts from this draft</button>
+    </section>}
+  </>;
+  if (editor) return <BudgetPlanEditor notice={editorNotice}
+    saving={saving} saveBlocked={!!stale || missingIds.length > 0} editor={editor} accounts={budgetAccounts} loading={loading}
+    accountError={status?.configured === false && editor.accountIds.length === 0 ? '' : error}
     planError={planError} cycleLabel={getCycle(editor.start).label} previousPlan={plan}
     onChange={updateEditor} onSave={savePlan} onCancel={() => setEditor(null)}
     onConnectAccount={onConnectAccount} onRetry={reload} onReplace={() => openEditor("replace")}
   />;
+
+  if (retryNotice) return <div className="budgets-page">{retryNotice}</div>;
+  if (!plan && legacy) return <div className="budgets-page"><section className="budget-panel">
+    <h1>Review your saved browser plan</h1>
+    <p>Your {money(legacy.budget)} plan starts {dateFormat.format(parseDate(legacy.start))}. Review its accounts and allocations, then save it to use it across devices.</p>
+    <button type="button" className="budget-report-button" disabled={loading} onClick={() => openEditor('create', true)}>Review and import plan</button>
+  </section></div>;
 
   if (!plan) return <BudgetEmptyState onCreatePlan={() => openEditor('create')} loadError={error} onRetry={reload} />;
 

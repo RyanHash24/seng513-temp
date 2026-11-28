@@ -20,6 +20,9 @@ type Props = {
   editor: PlanEditorState;
   accounts: Account[];
   loading: boolean;
+  notice?: ReactNode;
+  saving: boolean;
+  saveBlocked: boolean;
   accountError: string;
   planError: string;
   cycleLabel: string;
@@ -124,7 +127,7 @@ function Catalogue({ categories, onChange, onClose, focusCategory }: { categorie
   </Modal>;
 }
 
-export default function BudgetPlanEditor({ editor, accounts, loading, accountError, planError, cycleLabel, previousPlan, onChange, onSave, onCancel, onConnectAccount, onRetry, onReplace }: Props) {
+export default function BudgetPlanEditor({ editor, accounts, loading, notice, saving, saveBlocked, accountError, planError, cycleLabel, previousPlan, onChange, onSave, onCancel, onConnectAccount, onRetry, onReplace }: Props) {
   const [confirmReplacement, setConfirmReplacement] = useState(false);
   const [overlay, setOverlay] = useState<'date' | 'catalogue' | null>(null);
   const [focusCategory, setFocusCategory] = useState<string>();
@@ -133,7 +136,9 @@ export default function BudgetPlanEditor({ editor, accounts, loading, accountErr
   const budget = cents(editor.budget) || 0;
   const allocated = editor.categories.reduce((sum, category) => sum + (cents(category.allocation) || 0), 0);
   const left = budget - allocated;
-  const saveError = planError || allocationError(cents(editor.budget), editor.categories.map(category => cents(category.allocation)));
+  const validationError = allocationError(cents(editor.budget), editor.categories.map(category => cents(category.allocation)));
+  const saveError = planError || validationError;
+  const disabled = !!validationError || loading || saving || saveBlocked || !!accountError;
   const selectedDate = date(editor.start);
   const titles = { create: 'Create your monthly plan', edit: 'Edit your monthly plan', replace: 'Create a replacement plan' };
   function updateCategory(category: DraftCategory) { onChange({ categories: editor.categories.map(c => c.id === category.id ? category : c) }); }
@@ -144,12 +149,13 @@ export default function BudgetPlanEditor({ editor, accounts, loading, accountErr
     updateCategory(amountEdit.expense ? setExpenseAmount(category, amountEdit.expense, cents(value)) : { ...category, allocation: value, targets: scaleTargets(category.targets ?? [], cents(value)) });
   }
   function openCatalogue(name?: string) { setFocusCategory(name); setOverlay('catalogue'); }
-  return <div className="budgets-page plan-editor">
+  return <div className="budgets-page plan-editor" inert={saving} aria-busy={saving}>
     <header className="plan-editor-heading"><div><button type="button" className="plan-back" onClick={onCancel}>← Back to Budget</button><h1>{titles[editor.mode]}</h1><p>Choose a spending limit and assign it to your categories.</p></div><span className="plan-month">{monthFormat.format(selectedDate)}</span></header>
+    {notice}
     <form id="budget-plan-form" onSubmit={event => {
       if (editor.mode === 'replace') {
         event.preventDefault();
-        if (!saveError && !loading && !accountError) setConfirmReplacement(true);
+        if (!disabled) setConfirmReplacement(true);
       } else onSave(event);
     }}>
       <div className="plan-editor-columns">
@@ -157,7 +163,7 @@ export default function BudgetPlanEditor({ editor, accounts, loading, accountErr
           <button type="button" className="plan-panel plan-start-card" onClick={() => setOverlay('date')}><span>Plan start date · Change</span><strong>{dateFormat.format(selectedDate)}</strong><small>{cycleLabel}</small></button>
           <section className="plan-panel plan-accounts-card" aria-labelledby="plan-account-title">
             <h2 id="plan-account-title">Accounts included in this budget</h2><p>Only posted purchases and refunds from selected accounts count. Transfers and credit-card payments are excluded.</p>
-            {loading ? <p role="status">Loading your accounts…</p> : accountError ? <p role="alert">{accountError} <button type="button" onClick={onRetry}>Try again</button></p> : accounts.length ? <div className="plan-account-options">{accounts.map(account => <label key={account.id}><input type="checkbox" checked={account.status === 'Connected' && editor.accountIds.includes(account.id)} disabled={account.status !== 'Connected'} onChange={event => onChange({ accountIds: event.currentTarget.checked ? [...editor.accountIds, account.id] : editor.accountIds.filter(id => id !== account.id) })} /><span>{account.name}{account.lastFour && ` · •${account.lastFour}`}<small>{account.status === 'Connected' ? 'Connected' : 'Reconnection needed'}</small></span></label>)}</div> : <div className="plan-no-accounts"><strong>No accounts connected</strong><p>Connect an account to choose which spending counts toward this plan.</p><button type="button" className="plan-text-button" onClick={onConnectAccount}>Connect an account</button></div>}
+            {loading ? <p role="status">Loading your accounts…</p> : accountError ? <p role="alert">{accountError} <button type="button" onClick={onRetry}>Try again</button></p> : accounts.length ? <div className="plan-account-options">{accounts.map(account => <label key={account.id}><input type="checkbox" checked={editor.accountIds.includes(account.id)} disabled={account.status !== 'Connected' && !editor.accountIds.includes(account.id)} onChange={event => onChange({ accountIds: event.currentTarget.checked ? [...editor.accountIds, account.id] : editor.accountIds.filter(id => id !== account.id) })} /><span>{account.name}{account.lastFour && ` · •${account.lastFour}`}<small>{account.status === 'Connected' ? 'Connected' : 'Reconnection needed'}</small></span></label>)}</div> : <div className="plan-no-accounts"><strong>No accounts connected</strong><p>Connect an account to choose which spending counts toward this plan.</p><button type="button" className="plan-text-button" onClick={onConnectAccount}>Connect an account</button></div>}
             <p>Your spending limit is independent of income. You can plan before connecting an account.</p>
           </section>
           <section className="plan-panel plan-budget-card"><div><h2>Budget amount</h2><p>Your spending limit for this month. This does not change or estimate your income.</p></div><button type="button" className="plan-amount-button" aria-label={`Change budget amount, ${money(budget)}`} onClick={() => setAmountEdit({ title: 'Budget amount', value: editor.budget })}>{money(budget)}</button></section>
@@ -177,7 +183,7 @@ export default function BudgetPlanEditor({ editor, accounts, loading, accountErr
         </div>
         <aside className="plan-editor-aside"><section className={`plan-panel plan-glance${left < 0 ? ' plan-overallocated' : ''}`} aria-labelledby="plan-glance-title"><h2 id="plan-glance-title">Your plan at a glance</h2><div className="plan-unassigned" aria-live="polite"><span>LEFT TO ASSIGN</span><strong>{money(left)}</strong><p>{left < 0 ? `Reduce allocations by ${money(-left)}.` : budget <= 0 ? 'Set your spending limit to get started.' : left === 0 ? 'Every dollar is assigned.' : 'Assign this amount to your categories.'}</p></div><div className="plan-glance-totals"><p><span>Budget amount</span><strong>{money(budget)}</strong></p><p><span>Planned spending</span><strong>{money(allocated)}</strong></p></div></section><p className="plan-guidance">Category totals include their expenses. Add categories to make this plan your own.</p>{editor.mode === 'edit' && <button type="button" onClick={onReplace}>Create a replacement plan</button>}</aside>
       </div>
-      <footer className="plan-panel plan-save-footer"><div><p>Changes apply to {monthFormat.format(selectedDate)}</p><small>Your recorded transactions stay as they are.</small>{saveError && <p id="plan-save-error" className="plan-error" role="alert">{saveError}</p>}</div><button type="button" onClick={onCancel}>Cancel</button><button type="submit" className="plan-primary" disabled={!!saveError || loading || !!accountError} aria-describedby={saveError ? 'plan-save-error' : undefined}>{editor.mode === 'edit' ? 'Save changes' : editor.mode === 'replace' ? 'Review replacement' : 'Create budget'}</button></footer>
+      <footer className="plan-panel plan-save-footer"><div><p>Changes apply to {monthFormat.format(selectedDate)}</p><small>Your recorded transactions stay as they are.</small>{saveError && <p id="plan-save-error" className="plan-error" role="alert">{saveError}</p>}</div><button type="button" onClick={onCancel}>Cancel</button><button type="submit" className="plan-primary" disabled={disabled} aria-describedby={saveError ? 'plan-save-error' : undefined}>{saving ? 'Saving…' : editor.mode === 'edit' ? 'Save changes' : editor.mode === 'replace' ? 'Review replacement' : 'Create budget'}</button></footer>
     </form>
     {confirmReplacement && <Modal title="Replace your saved plan?" onClose={() => setConfirmReplacement(false)}>
       <form className="plan-replacement-confirmation" onSubmit={event => { onSave(event); setConfirmReplacement(false); }}>
@@ -189,7 +195,7 @@ export default function BudgetPlanEditor({ editor, accounts, loading, accountErr
           <dt>Cycle</dt><dd>{cycleLabel}</dd>
         </dl>
         <button type="button" data-initial-focus className="plan-dialog-cancel" onClick={() => setConfirmReplacement(false)}>Keep editing</button>
-        <button type="submit" className="plan-primary plan-dialog-apply" disabled={!!saveError || loading || !!accountError}>Replace saved plan</button>
+        <button type="submit" className="plan-primary plan-dialog-apply" disabled={disabled}>Replace saved plan</button>
       </form>
     </Modal>}
     {overlay === 'date' && <StartDateEditor value={editor.start} onApply={start => onChange({ start })} onClose={() => setOverlay(null)} />}
