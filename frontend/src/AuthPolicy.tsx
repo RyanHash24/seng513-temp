@@ -17,11 +17,11 @@ const sections = {
   ],
 };
 
-export default function AuthPolicy({ policy, onBack }: { policy: 'privacy' | 'terms'; onBack: () => void }) {
+export default function AuthPolicy({ policy, onBack, theme }: { policy: 'privacy' | 'terms'; onBack: () => void; theme?: 'light' | 'dark' }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => heading.current?.focus(), []);
   const title = policy === 'privacy' ? 'Privacy policy' : 'Terms of Service';
-  return <main className="login-page auth-policy">
+  return <main className="login-page auth-policy" data-theme={theme}>
     <header><button className="login-link" onClick={onBack}>Back</button><span>{title}</span></header>
     <article>
       <p className="auth-policy-draft">DRAFT · FOR REVIEW BEFORE LAUNCH</p>

@@ -4,10 +4,14 @@ import Login from './Login';
 import Signup from './Signup';
 import ConnectBank from './ConnectBank';
 
-export default function AuthGate({ component: Component }: { component: ComponentType<{ user: AuthUser; logout: () => Promise<void> }> }) {
+export default function AuthGate({ component: Component }: { component: ComponentType<{
+  user: AuthUser; logout: () => Promise<void>; onAccountDeleted: (message: string) => void;
+  onSessionEnded: (message: string) => void; onPasswordChanged: () => void;
+}> }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [screen, setScreen] = useState<'login' | 'signup' | 'connect'>('login');
   const authVersion = useRef(0);
   useEffect(() => {
@@ -20,7 +24,7 @@ export default function AuthGate({ component: Component }: { component: Componen
         const restored = await readUser(response);
         if (active && version === authVersion.current) setUser(restored);
       } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : 'Unable to check your login.');
+        if (active && version === authVersion.current) setError(cause instanceof Error ? cause.message : 'Unable to check your login.');
       } finally { if (active) setChecking(false); }
     }
     void restore();
@@ -34,6 +38,7 @@ export default function AuthGate({ component: Component }: { component: Componen
     authVersion.current++;
     setUser(null);
     setError('');
+    setNotice('');
     setScreen('login');
   }
   if (checking) return <main className="login-page" role="status">Checking your login…</main>;
@@ -42,12 +47,22 @@ export default function AuthGate({ component: Component }: { component: Componen
     const nextUser = await readUser(await authRequest('signup', credentials));
     authVersion.current++;
     setUser(nextUser);
+    setNotice('');
     setScreen('connect');
   }} />;
-  if (!user) return <Login onCreateAccount={() => setScreen('signup')} onSubmit={async credentials => {
+  if (!user) return <Login initialNotice={notice} onCreateAccount={() => setScreen('signup')} onSubmit={async credentials => {
     const nextUser = await readUser(await authRequest('login', credentials));
     authVersion.current++;
     setUser(nextUser);
+    setNotice('');
   }} initialError={error} />;
-  return <Component key={user.id} user={user} logout={logout} />;
+  function endSession(message: string) {
+    authVersion.current++;
+    setUser(null);
+    setError('');
+    setNotice(message);
+    setScreen('login');
+  }
+  return <Component key={user.id} user={user} logout={logout} onAccountDeleted={endSession} onSessionEnded={endSession}
+    onPasswordChanged={() => { authVersion.current++; }} />;
 }

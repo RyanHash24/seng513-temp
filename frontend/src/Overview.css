@@ -1,0 +1,56 @@
+.fc-overview-live-grid { display: grid; grid-template-columns: minmax(0, 696fr) minmax(0, 416fr); grid-template-areas: 'main side'; align-items: start; gap: 24px; }
+.fc-overview-main-column, .fc-overview-side-column { display: grid; align-content: start; gap: 24px; min-width: 0; grid-auto-rows: max-content; }
+.fc-overview-main-column { grid-area: main; }
+.fc-overview-side-column { grid-area: side; }
+.fc-overview-budget-slot { min-width: 0; }
+.fc-overview-monthly-plan { min-width: 0; }
+.fc-overview-activity-card { min-width: 0; }
+.fc-overview-spending { width: 100%; }
+.fc-overview-cash { display: none; grid-area: cash; }
+.fc-overview-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.fc-overview-trial > .fc-overview-link { flex-shrink: 0; white-space: nowrap; }
+.fc-overview-heading { flex-wrap: wrap; gap: 16px; }
+.fc-overview-heading > div { min-width: 0; }
+.fc-overview h1 { text-wrap: balance; overflow-wrap: anywhere; }
+.fc-overview-budget-caption, .fc-overview-plan-row { flex-wrap: wrap; }
+.fc-overview .fc-overview-review { justify-self: start; }
+.fc-overview-notice { color: var(--fc-warning); font-size: 12px; line-height: 18px; }
+.fc-overview-status { display: grid; gap: 12px; }
+.fc-overview-status p, .fc-overview-scheduled > p { color: var(--overview-muted, var(--fc-muted)); font-size: 14px; line-height: 21px; }
+.fc-overview-status .fc-overview-link { justify-self: start; }
+.fc-overview-scheduled { display: grid; gap: 16px; max-width: 720px; }
+.fc-overview-scheduled h2 { font-size: 24px; font-weight: 600; line-height: 32px; }
+.fc-overview-scheduled > time { font-size: 30px; line-height: 40px; }
+.fc-overview-scheduled .fc-overview-plan { margin-top: 0; }
+.fc-overview-connect { margin-top: 24px; }
+.fc-overview-activity-period, .fc-overview-chart-note { margin-top: 8px !important; color: var(--overview-muted); font-size: 12px; line-height: 18px; }
+.fc-overview-activity li { grid-template-columns: 36px minmax(0, 1fr) auto max-content; }
+.fc-overview-merchant strong { overflow-wrap: anywhere; }
+.fc-overview-donut-center strong { font-size: 19px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fc-overview-legend-row { align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.fc-overview-legend-row > span:last-child { margin-left: auto; font-variant-numeric: tabular-nums; }
+.fc-overview-swatch { margin-right: 8px; }
+.fc-overview-definitions { margin-top: 24px; color: var(--overview-muted); font-size: 12px; line-height: 19px; }
+.fc-overview-definitions summary { width: fit-content; padding: 8px 0; color: var(--overview-accent); cursor: pointer; }
+.fc-overview-definitions summary:focus-visible { outline: 2px solid var(--overview-accent); outline-offset: 4px; }
+.fc-overview-definitions dl { display: grid; gap: 4px; max-width: 800px; margin-top: 12px; }
+.fc-overview-definitions dt { color: var(--overview-text); font-weight: 600; }
+.fc-overview-definitions dd { margin-bottom: 12px; }
+@media (max-width: 1000px) {
+  .fc-overview-live-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'main' 'side'; }
+}
+@media (max-width: 700px) {
+  .fc-overview-live-grid { grid-template-areas: 'cash' 'spending' 'budget' 'activity'; gap: 20px; }
+  .fc-overview-main-column, .fc-overview-side-column { display: contents; }
+  .fc-overview-budget-slot { grid-area: budget; }
+  .fc-overview-activity-card { grid-area: activity; }
+  .fc-overview-spending { grid-area: spending; }
+  .fc-overview-monthly-plan { display: none; }
+  .fc-overview-cash { display: grid; gap: 16px; }
+  .fc-overview-cash > strong { font-size: 28px; line-height: 36px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .fc-overview-cash p { font-size: 14px; line-height: 21px; }
+  .fc-overview-cash .fc-overview-link { justify-self: start; }
+  .fc-overview-activity li { grid-template-columns: 32px minmax(0, 1fr) auto; }
+  .fc-overview-budget-stats { gap: 12px; }
+  .fc-overview-budget-stat dd { font-size: clamp(20px, 6vw, 26px); line-height: 1.5; }
+}

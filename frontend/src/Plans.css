@@ -1,0 +1,83 @@
+.fc-plans, .fc-plan-current, .fc-plan-upgrade-dialog { color: var(--fc-text); color-scheme: var(--fc-color-scheme); font-family: "Inter Variable", Inter, sans-serif; }
+.fc-plans *, .fc-plan-current *, .fc-plan-upgrade-dialog * { box-sizing: border-box; }
+.fc-plans { display: grid; align-content: start; gap: 24px; min-height: calc(100dvh - 72px); padding: 32px 40px 40px; background: var(--fc-background); }
+.fc-plans :is(h1, h2, p), .fc-plan-current :is(h2, p), .fc-plan-upgrade-dialog :is(h2, p) { margin: 0; }
+.fc-plans h1 { font-size: 30px; font-weight: 600; line-height: 1.35; text-wrap: balance; }
+.fc-plans h2, .fc-plan-current h2 { font-size: 18px; font-weight: 600; line-height: 26px; }
+.fc-plans p, .fc-plan-current p, .fc-plan-upgrade-dialog p { font-size: 14px; line-height: 21px; }
+.fc-plans-heading, .fc-plan-current > header, .fc-plan-option > header, .fc-plan-upgrade-dialog > header { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; }
+.fc-plans-heading > div { min-width: 0; }
+.fc-plans-heading p { margin-top: 8px; color: var(--fc-muted); }
+.fc-plan-back { justify-self: start; padding: 0; border: 0; background: transparent; color: var(--fc-muted); font: inherit; font-size: 13px; line-height: 20px; cursor: pointer; }
+.fc-plan-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border: 1px solid var(--fc-border); border-radius: 8px; background: transparent; color: var(--fc-text); font: inherit; font-size: 13px; font-weight: 600; line-height: 20px; text-align: center; cursor: pointer; }
+.fc-plan-button:disabled { opacity: .65; cursor: not-allowed; }
+.fc-plan-button:hover:not(:disabled) { border-color: var(--fc-accent); }
+.fc-plans :is(button, summary):focus-visible, .fc-plan-current button:focus-visible, .fc-plan-upgrade-dialog button:focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+.fc-plan-primary { background: var(--fc-accent); border-color: var(--fc-accent); color: var(--fc-on-accent); }
+.fc-plan-current { display: grid; gap: 12px; padding: 20px; border: 1px solid var(--fc-border); border-radius: 12px; background: var(--fc-surface); }
+.fc-plan-current > .fc-plan-button { justify-self: start; }
+.fc-plan-tag { display: inline-block; padding: 4px 8px; border-radius: 4px; background: var(--fc-selected); color: var(--fc-accent); font-size: 11px; font-weight: 600; line-height: 16px; }
+.fc-plan-muted, .fc-plan-card-note { color: var(--fc-muted); }
+.fc-plan-preview-notice { display: grid; gap: 8px; padding: 16px 20px; border: 1px solid var(--fc-border); border-radius: 12px; background: var(--fc-selected); }
+.fc-plan-preview-notice h2 { font-size: 14px; line-height: 20px; }
+.fc-plan-preview-notice p { color: var(--fc-muted); font-size: 13px; line-height: 20px; }
+.fc-plan-period { justify-self: start; display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.fc-plan-period legend { margin-bottom: 8px; color: var(--fc-muted); font-size: 12px; line-height: 18px; }
+.fc-plan-period > div { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--fc-border); border-radius: 10px; background: var(--fc-surface); }
+.fc-plan-period button { min-height: 36px; padding: 8px 20px; border: 0; border-radius: 6px; background: transparent; color: var(--fc-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.fc-plan-period button[aria-pressed="true"] { background: var(--fc-selected); color: var(--fc-accent); }
+.fc-plan-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.fc-subscription-plans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.fc-subscription-plans .fc-plan-option { padding: 20px; }
+.fc-subscription-plans .fc-plan-option h2 { font-size: 18px; line-height: 26px; }
+.fc-subscription-plans .fc-plan-price { font-size: 24px; line-height: 34px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fc-subscription-plans .fc-plan-tag { align-self: start; }
+.fc-settings .fc-plan-current h2 { font-size: 18px; line-height: 26px; }
+.fc-settings .fc-plan-primary { background: var(--fc-accent); border-color: var(--fc-accent); color: var(--fc-on-accent); }
+.fc-plan-option { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 24px; border: 1px solid var(--fc-border); border-radius: 12px; background: var(--fc-surface); }
+.fc-plan-option h2 { font-size: 24px; line-height: 32px; }
+.fc-plan-option > p:not(.fc-plan-price) { color: var(--fc-muted); }
+.fc-plan-option > .fc-plan-button { width: 100%; margin-top: auto; }
+.fc-plan-premium { background: var(--fc-selected); }
+.fc-plan-premium-icon { display: block; flex: 0 0 22px; width: 22px; height: 22px; background: var(--fc-accent); mask: url('./assets/plans/premium.svg') center / contain no-repeat; }
+.fc-plans .fc-plan-price, .fc-plan-upgrade-dialog .fc-plan-price { font-size: clamp(26px, 3vw, 34px); font-weight: 600; line-height: 1.4; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fc-plan-price small { color: var(--fc-muted); font-size: 13px; font-weight: 400; white-space: nowrap; }
+.fc-plans .fc-plan-card-note { font-size: 12px; line-height: 18px; }
+.fc-plan-comparison { overflow: hidden; min-width: 0; border: 1px solid var(--fc-border); border-radius: 12px; background: var(--fc-surface); }
+.fc-plan-comparison > header { display: grid; gap: 4px; padding: 20px 24px; }
+.fc-plan-comparison > header p { color: var(--fc-muted); font-size: 12px; line-height: 18px; }
+.fc-plan-comparison table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; line-height: 20px; }
+.fc-plan-comparison :is(th, td) { padding: 16px 24px; font-weight: 400; text-align: left; overflow-wrap: anywhere; }
+.fc-plan-comparison thead { background: var(--fc-input); color: var(--fc-muted); font-size: 11px; text-transform: uppercase; }
+.fc-plan-comparison th:first-child { width: 46%; }
+.fc-plan-comparison tbody tr + tr { border-top: 1px solid var(--fc-border); }
+.fc-plan-comparison tbody td { color: var(--fc-muted); }
+.fc-plan-comparison tbody td:last-child { color: var(--fc-accent); }
+.fc-plan-billing { display: grid; gap: 12px; padding: 20px 24px; border: 1px solid var(--fc-border); border-radius: 12px; background: var(--fc-surface); }
+.fc-plan-billing p { color: var(--fc-muted); }
+.fc-plan-billing .fc-plan-button { justify-self: start; }
+.fc-plan-feedback { color: var(--fc-muted); font-size: 13px; line-height: 20px; }
+.fc-plan-feedback.fc-plan-error { color: var(--fc-error); }
+.fc-plan-upgrade-dialog { position: fixed; inset: 0; display: grid; gap: 20px; width: min(460px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 24px; overflow-y: auto; border: 1px solid var(--fc-border); border-radius: 16px; background: var(--fc-surface); }
+.fc-plan-upgrade-dialog:not([open]) { display: none; }
+.fc-plan-upgrade-dialog::backdrop { background: rgb(0 0 0 / 60%); }
+.fc-plan-upgrade-dialog h2 { font-size: 22px; font-weight: 600; line-height: 30px; }
+.fc-plan-upgrade-dialog .fc-plan-tag { justify-self: start; }
+.fc-plan-upgrade-dialog > p:not(.fc-plan-price) { color: var(--fc-muted); }
+.fc-plan-close { min-width: 32px; min-height: 32px; padding: 0; border: 0; background: transparent; color: var(--fc-muted); font-size: 26px; cursor: pointer; }
+.fc-plan-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 900px) { .fc-plan-options { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1200px) { .fc-subscription-plans { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 700px) {
+  .fc-plans { gap: 20px; padding: 24px 20px; min-height: calc(100dvh - 140px); }
+  .fc-plans h1 { font-size: 26px; line-height: 34px; }
+  .fc-plan-option { padding: 20px; }
+  .fc-plan-comparison > header { padding: 20px; }
+  .fc-plan-comparison thead { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .fc-plan-comparison table, .fc-plan-comparison tbody { display: block; }
+  .fc-plan-comparison tr { display: grid; gap: 8px; padding: 16px 20px; }
+  .fc-plan-comparison :is(th, td) { display: block; width: 100% !important; padding: 0; }
+  .fc-plan-comparison td::before { content: attr(data-plan) ' · '; font-weight: 600; }
+  .fc-plan-billing { padding: 20px; }
+  .fc-plan-upgrade-dialog > header { flex-wrap: nowrap; }
+}

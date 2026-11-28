@@ -6,12 +6,14 @@ import type { SignupCredentials } from './auth';
 import google from './assets/auth/google.svg';
 import './Login.css';
 import './Signup.css';
+import { useAuthTheme } from './useAuthTheme';
 
 function focusSignupError(element: HTMLParagraphElement | null) {
   element?.focus();
 }
 
 export default function Signup({ onSubmit, onBack }: { onSubmit: (credentials: SignupCredentials) => Promise<void>; onBack: () => void }) {
+  const theme = useAuthTheme();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,9 +42,13 @@ export default function Signup({ onSubmit, onBack }: { onSubmit: (credentials: S
     } finally { setBusy(false); }
   }
 
-  if (policy) return <AuthPolicy policy={policy} onBack={() => setPolicy(null)} />;
-  return <main className="login-page signup-page">
+  if (policy) return <AuthPolicy policy={policy} theme={theme} onBack={() => setPolicy(null)} />;
+  return <main className="login-page signup-page" data-theme={theme}>
     <AuthBrand />
+    <header className="signup-mobile-heading">
+      <button type="button" className="login-link" onClick={onBack} disabled={busy}>Back</button>
+      <span>FinClear · Step 1 of 2</span>
+    </header>
     <div className="login-layout signup-layout">
       <section className="signup-introduction" aria-labelledby="signup-heading">
         <div className="signup-progress-heading"><button type="button" className="login-link" onClick={onBack} disabled={busy}>← Back</button><span>Step 1 of 2</span></div>

@@ -3,17 +3,20 @@ import '@fontsource-variable/inter';
 import logo from './assets/auth/finclear-logo.png';
 import google from './assets/auth/google.svg';
 import './Login.css';
+import { useAuthTheme } from './useAuthTheme';
 
-export default function Login({ onSubmit, initialError = '', onCreateAccount }: {
+export default function Login({ onSubmit, initialError = '', initialNotice = '', onCreateAccount }: {
   onSubmit: (credentials: { email: string; password: string }) => Promise<void>;
   initialError?: string;
+  initialNotice?: string;
   onCreateAccount?: () => void;
 }) {
+  const theme = useAuthTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState(initialNotice);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,7 +33,7 @@ export default function Login({ onSubmit, initialError = '', onCreateAccount }: 
   }
 
   return (
-    <main className="login-page">
+    <main className="login-page" data-theme={theme}>
       <div className="login-brand" aria-label="FinClear">
         <span className="login-logo"><img src={logo} alt="" /></span><span>FinClear</span>
       </div>

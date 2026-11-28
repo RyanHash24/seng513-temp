@@ -487,10 +487,10 @@ export default function Budgets({ userId, initialCreate = false, onConnectAccoun
             <strong className="budget-plan-amount">{money(spent)} spent</strong>
             <p className="budget-plan-note">of {money(plan.budget)} spending budget</p>
             <PercentBar spent={spent} limit={plan.budget} />
-            <p className="budget-plan-note">
-              {money(Math.abs(plan.budget - spent))} {spent > plan.budget ? "over budget" : "remaining"}
-              {!cycle.scheduled && ` · ${cycle.daysLeft} days until the next cycle`}
-            </p>
+            <div className="budget-plan-balance" aria-live="polite">
+              <p><strong>{money(Math.abs(plan.budget - spent))}</strong><span>{spent > plan.budget ? "over budget" : "remaining"}</span></p>
+              {!cycle.scheduled && <span>{cycle.daysLeft} {cycle.daysLeft === 1 ? 'day' : 'days'} until the next cycle</span>}
+            </div>
           </section>
 
           <div className="budget-plan-columns">

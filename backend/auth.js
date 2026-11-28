@@ -27,6 +27,10 @@ async function verifyPassword(password, encoded) {
   return timingSafeEqual(derived, Buffer.from(hash, 'hex'));
 }
 
+function validNewPassword(password) {
+  return typeof password === 'string' && password.length >= 7 && password.length <= 128 && /[\p{P}\p{S}]/u.test(password);
+}
+
 function publicUser(row) {
   let role = row.access_role;
   if (role === 'trial' && new Date(row.trial_ends_at) <= new Date()) role = 'free';
@@ -49,7 +53,7 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
   const router = express.Router();
   const cookieOptions = { httpOnly: true, secure: production, sameSite: 'strict', path: '/api' };
   function issueSession(res, row) {
-    const token = jwt.sign({}, secret, { ...JWT_OPTIONS, algorithm: 'HS256', subject: row.id, expiresIn: '15m' });
+    const token = jwt.sign({ sv: row.session_version ?? 0 }, secret, { ...JWT_OPTIONS, algorithm: 'HS256', subject: row.id, expiresIn: '15m' });
     res.cookie(COOKIE, token, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
   }
   router.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
@@ -69,7 +73,7 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
     if (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || /[\x00-\x1f\x7f]/.test(email)) {
       return res.status(400).json({ error: 'Enter a valid email address.' });
     }
-    if (typeof password !== 'string' || password.length < 7 || password.length > 128 || !/[\p{P}\p{S}]/u.test(password)) {
+    if (!validNewPassword(password)) {
       return res.status(400).json({ error: 'Use 7–128 characters, including at least one special character.' });
     }
     if (password !== confirmPassword) return res.status(400).json({ error: 'Passwords do not match.' });
@@ -109,12 +113,15 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
       const token = cookie ? cookie.slice(COOKIE.length + 1) : '';
       const claims = jwt.verify(token, secret, { ...JWT_OPTIONS, algorithms: ['HS256'], maxAge: '15m' });
       if (typeof claims.sub !== 'string' || !/^[a-f0-9-]{36}$/i.test(claims.sub)) throw new Error('Invalid subject');
-      const { rows } = await pool.query(`SELECT ${USER_FIELDS} FROM users WHERE id = $1`, [claims.sub]);
-      if (!rows[0] || rows[0].access_role === 'guest') return res.status(401).json({ error: 'Please log in again.' });
+      const version = claims.sv === undefined ? 0 : claims.sv;
+      if (!Number.isSafeInteger(version) || version < 0) throw new Error('Invalid session version');
+      const { rows } = await pool.query(`SELECT ${USER_FIELDS}, session_version FROM users WHERE id = $1`, [claims.sub]);
+      if (!rows[0] || rows[0].access_role === 'guest' || version !== (rows[0].session_version ?? 0)) return res.status(401).json({ error: 'Please log in again.' });
       req.user = publicUser(rows[0]);
+      req.sessionVersion = version;
       return next();
     } catch (error) {
-      if (error instanceof jwt.JsonWebTokenError || error.message === 'Invalid subject') {
+      if (error instanceof jwt.JsonWebTokenError || error.message === 'Invalid subject' || error.message === 'Invalid session version') {
         return res.status(401).json({ error: 'Please log in again.' });
       }
       return res.status(503).json({ error: 'Authentication is temporarily unavailable.' });
@@ -128,7 +135,7 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
       return res.status(400).json({ error: 'Enter your email and password.' });
     }
     try {
-      const { rows } = await pool.query(`SELECT ${USER_FIELDS}, password_hash FROM users WHERE email = $1`, [email.trim().toLowerCase()]);
+      const { rows } = await pool.query(`SELECT ${USER_FIELDS}, password_hash, session_version FROM users WHERE email = $1`, [email.trim().toLowerCase()]);
       const row = rows[0];
       const matches = await verifyPassword(password, row?.password_hash || DUMMY_HASH);
       if (!row || row.access_role === 'guest' || !matches) return res.status(401).json({ error: 'Email or password is incorrect.' });
@@ -139,8 +146,9 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
     }
   });
   router.get('/me', requireAuth, (req, res) => res.json({ user: req.user }));
-  router.post('/logout', (req, res) => { res.clearCookie(COOKIE, cookieOptions); res.sendStatus(204); });
-  return { router, requireAuth };
+  function clearSession(res) { res.clearCookie(COOKIE, cookieOptions); }
+  router.post('/logout', (req, res) => { clearSession(res); res.sendStatus(204); });
+  return { router, requireAuth, clearSession, issueSession };
 }
 
-module.exports = { createAuth, getJwtSecret, verifyPassword, hashPassword };
+module.exports = { createAuth, getJwtSecret, verifyPassword, hashPassword, validNewPassword };

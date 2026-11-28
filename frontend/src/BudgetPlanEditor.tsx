@@ -7,7 +7,7 @@ import upIcon from './assets/budget/chevron-up.svg';
 import downIcon from './assets/budget/chevron-down.svg';
 import './BudgetPlanEditor.css';
 
-const dollars = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const dollars = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const expenseDollars = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' });
 const dateFormat = new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 const monthFormat = new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -116,7 +116,7 @@ function Catalogue({ categories, onChange, onClose, focusCategory }: { categorie
         const open = expanded.includes(category.name);
         return <section className="plan-catalogue-category" key={category.name}>
           <header><label><input type="checkbox" checked={!!selected} onChange={event => toggleCategory(category.name, event.currentTarget.checked)} /><span><strong>{category.name}</strong><small>{category.description}</small></span></label><button type="button" className="plan-icon-button" aria-label={`${open ? 'Collapse' : 'Expand'} ${category.name} expenses`} aria-expanded={open} onClick={() => setExpanded(current => open ? current.filter(name => name !== category.name) : [...current, category.name])}><img src={open ? upIcon : downIcon} alt="" /></button></header>
-          {open && <div className="plan-catalogue-expenses">{category.expenses.map(expense => <label key={expense}><input type="checkbox" checked={!!selected?.targets?.some(t => t.name === expense)} onChange={event => toggleExpense(category.name, expense, event.currentTarget.checked)} /><span>{expense}</span></label>)}</div>}
+          {open && <div className="plan-catalogue-expenses">{[...new Set([...category.expenses, 'Other spending'])].map(expense => <label key={expense}><input type="checkbox" checked={!!selected?.targets?.some(t => t.name === expense)} onChange={event => toggleExpense(category.name, expense, event.currentTarget.checked)} /><span>{expense}</span></label>)}</div>}
         </section>;
       })}
     </div>
@@ -125,6 +125,7 @@ function Catalogue({ categories, onChange, onClose, focusCategory }: { categorie
 }
 
 export default function BudgetPlanEditor({ editor, accounts, loading, accountError, planError, cycleLabel, previousPlan, onChange, onSave, onCancel, onConnectAccount, onRetry, onReplace }: Props) {
+  const [confirmReplacement, setConfirmReplacement] = useState(false);
   const [overlay, setOverlay] = useState<'date' | 'catalogue' | null>(null);
   const [focusCategory, setFocusCategory] = useState<string>();
   const [amountEdit, setAmountEdit] = useState<{ title: string; value: string; categoryId?: number; expense?: string } | null>(null);
@@ -145,7 +146,12 @@ export default function BudgetPlanEditor({ editor, accounts, loading, accountErr
   function openCatalogue(name?: string) { setFocusCategory(name); setOverlay('catalogue'); }
   return <div className="budgets-page plan-editor">
     <header className="plan-editor-heading"><div><button type="button" className="plan-back" onClick={onCancel}>← Back to Budget</button><h1>{titles[editor.mode]}</h1><p>Choose a spending limit and assign it to your categories.</p></div><span className="plan-month">{monthFormat.format(selectedDate)}</span></header>
-    <form id="budget-plan-form" onSubmit={onSave}>
+    <form id="budget-plan-form" onSubmit={event => {
+      if (editor.mode === 'replace') {
+        event.preventDefault();
+        if (!saveError && !loading && !accountError) setConfirmReplacement(true);
+      } else onSave(event);
+    }}>
       <div className="plan-editor-columns">
         <div className="plan-editor-stack">
           <button type="button" className="plan-panel plan-start-card" onClick={() => setOverlay('date')}><span>Plan start date · Change</span><strong>{dateFormat.format(selectedDate)}</strong><small>{cycleLabel}</small></button>
@@ -156,7 +162,7 @@ export default function BudgetPlanEditor({ editor, accounts, loading, accountErr
           </section>
           <section className="plan-panel plan-budget-card"><div><h2>Budget amount</h2><p>Your spending limit for this month. This does not change or estimate your income.</p></div><button type="button" className="plan-amount-button" aria-label={`Change budget amount, ${money(budget)}`} onClick={() => setAmountEdit({ title: 'Budget amount', value: editor.budget })}>{money(budget)}</button></section>
           <section className="plan-categories" aria-labelledby="plan-categories-title">
-            <header className="plan-section-heading"><div><h2 id="plan-categories-title">Standard categories</h2><p>Expand a category to manage its expenses.</p></div><button type="button" className="plan-text-button" disabled={!previousPlan} title={!previousPlan ? 'No previous plan is available to copy' : 'Copy categories and amounts from your last saved plan'} onClick={() => previousPlan && onChange({ budget: String(previousPlan.budget / 100), categories: previousPlan.categories.map(c => ({ ...c, allocation: String(c.allocation / 100), targets: c.targets ?? (c.subcategory ? [{ name: c.subcategory, cents: c.allocation }] : []) })) })}>Copy last plan</button></header>
+            <header className="plan-section-heading"><div><h2 id="plan-categories-title">Standard categories</h2><p>Expand a category to manage its expenses.</p></div><button type="button" className="plan-text-button" disabled={!previousPlan} aria-describedby="plan-copy-note" title={!previousPlan ? 'No saved plan is available to copy' : 'Copy the spending limit, categories and expense amounts from your saved plan'} onClick={() => previousPlan && onChange({ budget: String(previousPlan.budget / 100), categories: previousPlan.categories.map(c => ({ ...c, allocation: String(c.allocation / 100), targets: c.targets ?? (c.subcategory ? [{ name: c.subcategory, cents: c.allocation }] : []) })) })}>Copy saved plan</button></header><p id="plan-copy-note" className="plan-copy-note">{previousPlan ? 'Copies the spending limit, categories and expense amounts from your saved plan into this draft.' : 'Save your first plan to reuse its spending limit, categories and expense amounts.'}</p>
             {editor.categories.length === 0 && <p className="plan-categories-empty">Add categories to start assigning your budget.</p>}
             {editor.categories.map(category => {
               const open = !collapsed.includes(category.id);
@@ -169,10 +175,23 @@ export default function BudgetPlanEditor({ editor, accounts, loading, accountErr
             <div className="plan-total"><small>Your categories</small><span>Total planned <strong>{money(allocated)}</strong></span></div>
           </section>
         </div>
-        <aside className="plan-editor-aside"><section className={`plan-panel plan-glance${left < 0 ? ' plan-overallocated' : ''}`} aria-labelledby="plan-glance-title"><h2 id="plan-glance-title">Your plan at a glance</h2><div className="plan-unassigned" aria-live="polite"><span>LEFT TO ASSIGN</span><strong>{money(left)}</strong><p>{left < 0 ? `Reduce allocations by ${money(-left)}.` : budget <= 0 ? 'Set your spending limit to get started.' : left === 0 ? 'Every dollar is assigned.' : 'Assign this amount to your categories.'}</p></div><div className="plan-glance-totals"><p><span>Budget amount</span><strong>{money(budget)}</strong></p><p><span>Planned spending</span><strong>{money(allocated)}</strong></p></div></section><p className="plan-guidance">Category totals include their expenses. Add categories to make this plan your own.</p>{editor.mode === 'edit' && <button type="button" onClick={onReplace}>Create a new plan</button>}</aside>
+        <aside className="plan-editor-aside"><section className={`plan-panel plan-glance${left < 0 ? ' plan-overallocated' : ''}`} aria-labelledby="plan-glance-title"><h2 id="plan-glance-title">Your plan at a glance</h2><div className="plan-unassigned" aria-live="polite"><span>LEFT TO ASSIGN</span><strong>{money(left)}</strong><p>{left < 0 ? `Reduce allocations by ${money(-left)}.` : budget <= 0 ? 'Set your spending limit to get started.' : left === 0 ? 'Every dollar is assigned.' : 'Assign this amount to your categories.'}</p></div><div className="plan-glance-totals"><p><span>Budget amount</span><strong>{money(budget)}</strong></p><p><span>Planned spending</span><strong>{money(allocated)}</strong></p></div></section><p className="plan-guidance">Category totals include their expenses. Add categories to make this plan your own.</p>{editor.mode === 'edit' && <button type="button" onClick={onReplace}>Create a replacement plan</button>}</aside>
       </div>
-      <footer className="plan-panel plan-save-footer"><div><p>Changes apply to {monthFormat.format(selectedDate)}</p><small>Your recorded transactions stay as they are.</small>{saveError && <p id="plan-save-error" className="plan-error" role="alert">{saveError}</p>}</div><button type="button" onClick={onCancel}>Cancel</button><button type="submit" className="plan-primary" disabled={!!saveError || loading || !!accountError} aria-describedby={saveError ? 'plan-save-error' : undefined}>{editor.mode === 'edit' ? 'Save changes' : 'Create budget'}</button></footer>
+      <footer className="plan-panel plan-save-footer"><div><p>Changes apply to {monthFormat.format(selectedDate)}</p><small>Your recorded transactions stay as they are.</small>{saveError && <p id="plan-save-error" className="plan-error" role="alert">{saveError}</p>}</div><button type="button" onClick={onCancel}>Cancel</button><button type="submit" className="plan-primary" disabled={!!saveError || loading || !!accountError} aria-describedby={saveError ? 'plan-save-error' : undefined}>{editor.mode === 'edit' ? 'Save changes' : editor.mode === 'replace' ? 'Review replacement' : 'Create budget'}</button></footer>
     </form>
+    {confirmReplacement && <Modal title="Replace your saved plan?" onClose={() => setConfirmReplacement(false)}>
+      <form className="plan-replacement-confirmation" onSubmit={event => { onSave(event); setConfirmReplacement(false); }}>
+        <h2>Replace your saved plan?</h2>
+        <p>This replaces your saved budget with the spending limit, categories, expense amounts and accounts in this draft.</p>
+        <dl>
+          {previousPlan && <><dt>Saved budget</dt><dd>{money(previousPlan.budget)} · starts {dateFormat.format(date(previousPlan.start))}</dd></>}
+          <dt>Replacement budget</dt><dd>{money(budget)} · starts {dateFormat.format(selectedDate)}</dd>
+          <dt>Cycle</dt><dd>{cycleLabel}</dd>
+        </dl>
+        <button type="button" data-initial-focus className="plan-dialog-cancel" onClick={() => setConfirmReplacement(false)}>Keep editing</button>
+        <button type="submit" className="plan-primary plan-dialog-apply" disabled={!!saveError || loading || !!accountError}>Replace saved plan</button>
+      </form>
+    </Modal>}
     {overlay === 'date' && <StartDateEditor value={editor.start} onApply={start => onChange({ start })} onClose={() => setOverlay(null)} />}
     {overlay === 'catalogue' && <Catalogue categories={editor.categories} onChange={categories => onChange({ categories })} focusCategory={focusCategory} onClose={() => setOverlay(null)} />}
     {amountEdit && <AmountEditor title={amountEdit.title} value={amountEdit.value} minimum={amountEdit.categoryId === undefined ? 1 : 0} onApply={applyAmount} onClose={() => setAmountEdit(null)} />}

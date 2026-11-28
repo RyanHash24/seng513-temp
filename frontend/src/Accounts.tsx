@@ -254,11 +254,16 @@ export default function Accounts({ connectOnOpen = false }: { connectOnOpen?: bo
   const filters = accountFilters.filter(type => type !== "Other" || accounts.some(account => accountGroup(account.accountType) === "Other"));
   const dataLabel = status?.environment === "sandbox" ? "Sandbox · Fictional bank data" : "Linked bank data";
 
+  function openAccount(id: string | null) {
+    setSelectedId(id);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
   if (connecting) return <ConnectBank onBack={() => setConnecting(false)}
     onContinue={() => { setConnecting(false); reload(); }} />;
 
   if (selected) return <div className="fc-accounts fca-detail-page"><style>{styles}</style>
-    <AccountDetails key={selected.id} account={selected} status={status} onBack={() => setSelectedId(null)} />
+    <AccountDetails key={selected.id} account={selected} status={status} onBack={() => openAccount(null)} />
   </div>;
 
   return <div className="fc-accounts" aria-busy={loading}>
@@ -311,7 +316,7 @@ export default function Accounts({ connectOnOpen = false }: { connectOnOpen?: bo
           <div className="fca-groups" tabIndex={0} aria-label="Linked accounts">
             {groups.map(({ type, items }) => <section className="fca-group" key={type} aria-label={type}>
               <h2>{type}</h2>
-              {items.map(account => <button className="fca-row" type="button" key={account.id} onClick={() => setSelectedId(account.id)}>
+              {items.map(account => <button className="fca-row" type="button" key={account.id} onClick={() => openAccount(account.id)}>
                 <span className="fca-icon"><img src={accountsIcon} alt="" /></span>
                 <span className="fca-row-name">{account.name}
                   <small className="fca-muted">{accountDescription(account)}</small>
