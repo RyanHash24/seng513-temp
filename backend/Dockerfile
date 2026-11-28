@@ -6,5 +6,6 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY *.js ./
+COPY fonts ./fonts
 EXPOSE 3000
 CMD ["node", "server.js"]

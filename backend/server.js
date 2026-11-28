@@ -6,6 +6,8 @@ const express = require('express');
 const { createAuth, getJwtSecret } = require('./auth');
 const { configuredMailer } = require('./account-flows');
 const { createPlaid } = require('./plaid');
+const { rateLimit } = require('express-rate-limit');
+const { monthlyReportHandler } = require('./monthly-report');
 const PORT = 3000;
 
 const DOWNLOAD_URL_EXPIRATION_SECONDS = 300;
@@ -61,6 +63,19 @@ function createApp(pool, authOptions, plaidOptions) {
   app.get('/api/account/permissions', auth.requireAuth, auth.requireVerified, (req, res) => res.json(req.user.permissions));
   app.get('/api/account/report-access', auth.requireAuth, auth.requireVerified,
     auth.requirePermission('monthlyReports'), (req, res) => res.sendStatus(204));
+  app.get('/api/reports/monthly', requireVerifiedAuth, auth.requirePermission('monthlyReports'),
+    rateLimit({ windowMs: 60000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false }),
+    monthlyReportHandler(pool, plaidOptions?.env ?? 'sandbox'));
+  app.post('/api/reports/monthly', requireVerifiedAuth, auth.requirePermission('monthlyReports'),
+    (req, res, next) => {
+      const origins = authOptions?.origins || ['http://localhost:5173', 'http://127.0.0.1:5173'];
+      if (!origins.includes(req.get('Origin')) || !req.is('application/json')) {
+        return res.status(403).json({ error: 'Request origin or content type is not allowed.' });
+      }
+      next();
+    },
+    rateLimit({ windowMs: 60000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false }),
+    monthlyReportHandler(pool, plaidOptions?.env ?? 'sandbox'));
   attachDownloads(app, requireVerifiedAuth, authOptions?.origins?.[0] || process.env.FRONTEND_ORIGIN || 'http://localhost:5173');
   app.use('/api/plaid', createPlaid(pool, requireVerifiedAuth, { origins: authOptions?.origins, ...plaidOptions }));
 
