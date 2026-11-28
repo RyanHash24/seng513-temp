@@ -11,7 +11,7 @@ import { spendingInCycle, type BudgetSpendingEntry as SpendingEntry } from "./bu
 import { allocationError, scaleTargets, type PlanEditorState as Editor } from "./budgetEditorState";
 import "./Budgets.css";
 
-const REPORT_URL = "http://localhost:7070/api/reports/monthly";
+import MonthlyBudgetReport from "./MonthlyBudgetReport";
 
 const currency = new Intl.NumberFormat("en-CA", {
   style: "currency",
@@ -322,8 +322,6 @@ export default function Budgets({ userId, initialCreate = false, onConnectAccoun
   const [editor, setEditor] = useState<Editor | null>(() => initialCreate
     ? { mode: 'create', start: today, budget: '', categories: [], accountIds: [] } : null);
   const [planError, setPlanError] = useState("");
-  const [downloading, setDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState("");
 
   useEffect(() => { onEditorModeChange?.(editor?.mode ?? null); }, [editor?.mode, onEditorModeChange]);
 
@@ -395,54 +393,6 @@ export default function Budgets({ userId, initialCreate = false, onConnectAccoun
     }
   }
 
-  async function downloadMonthlyReport() {
-    if (downloading) return;
-    setDownloading(true);
-    setDownloadError("");
-    let reportTab: Window | null = null;
-
-    try {
-      reportTab = window.open("", "_blank");
-      if (reportTab) reportTab.opener = null;
-
-      const response = await fetch(REPORT_URL, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-      if (!response.ok) {
-        throw new Error(`Report request failed (${response.status}).`);
-      }
-
-      const data: unknown = await response.json();
-      if (
-        typeof data !== "object" ||
-        data === null ||
-        !("url" in data) ||
-        typeof data.url !== "string"
-      ) {
-        throw new Error("Invalid report URL response.");
-      }
-
-      const reportUrl = new URL(data.url);
-      if (reportUrl.protocol !== "https:") {
-        throw new Error("Report URL must use HTTPS.");
-      }
-
-      if (reportTab && !reportTab.closed) {
-        reportTab.location.replace(reportUrl.href);
-      } else {
-        window.location.assign(reportUrl.href);
-      }
-    } catch (error) {
-      reportTab?.close();
-      setDownloadError(
-        error instanceof Error ? error.message : "Unable to download the monthly report.",
-      );
-    } finally {
-      setDownloading(false);
-    }
-  }
-
   if (editor) return <BudgetPlanEditor
     editor={editor} accounts={budgetAccounts} loading={loading} accountError={error}
     planError={planError} cycleLabel={getCycle(editor.start).label} previousPlan={plan}
@@ -450,9 +400,9 @@ export default function Budgets({ userId, initialCreate = false, onConnectAccoun
     onConnectAccount={onConnectAccount} onRetry={reload} onReplace={() => openEditor("replace")}
   />;
 
-  if (!plan) return <BudgetEmptyState onCreatePlan={() => openEditor('create')} loadError={error} onRetry={reload} />;
+  if (!plan) return <BudgetEmptyState onCreatePlan={() => openEditor('create')} loadError={error} onRetry={reload}><MonthlyBudgetReport plan={plan} /></BudgetEmptyState>;
 
-  if (cycle?.scheduled) return <BudgetScheduledState plan={plan} onEdit={() => openEditor("edit")} onReplace={() => openEditor("replace")} />;
+  if (cycle?.scheduled) return <BudgetScheduledState plan={plan} onEdit={() => openEditor("edit")} onReplace={() => openEditor("replace")}><MonthlyBudgetReport plan={plan} /></BudgetScheduledState>;
 
   return (
     <div className="budgets-page">
@@ -499,21 +449,7 @@ export default function Budgets({ userId, initialCreate = false, onConnectAccoun
             <div className="budget-plan-stack">
               <SpendingChart entries={entries} />
 
-              <section className="budget-panel budget-report">
-                <h3>Monthly Budget Report</h3>
-                <p>Download your monthly financial summary as a PDF.</p>
-                <button
-                  type="button"
-                  className="budget-report-button"
-                  disabled={downloading}
-                  onClick={downloadMonthlyReport}
-                >
-                  {downloading ? "Preparing Report..." : "Download Monthly Report"}
-                </button>
-                {downloadError && (
-                  <p className="budget-report-error" role="alert">{downloadError}</p>
-                )}
-              </section>
+              <MonthlyBudgetReport plan={plan} />
             </div>
           </div>
         </>

@@ -222,6 +222,23 @@
   margin-top: 16px;
 }
 
+.budget-report-month {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.budget-report-month input {
+  padding: 10px 12px;
+  border: 1px solid var(--budget-border);
+  border-radius: 8px;
+  background: var(--budget-background);
+  color: var(--budget-text);
+  font: inherit;
+  color-scheme: inherit;
+}
+
 .budget-report .budget-report-error {
   color: var(--budget-red);
 }

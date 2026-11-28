@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { currentDay, type BudgetPlan } from './budgetState';
 import { getBudgetCycle } from './budgetCycle';
 import './BudgetScheduledState.css';
@@ -6,8 +7,8 @@ const dateFormat = new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'nume
 const shortDate = new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 const currency = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-export default function BudgetScheduledState({ plan, onEdit, onReplace }: {
-  plan: BudgetPlan; onEdit: () => void; onReplace: () => void;
+export default function BudgetScheduledState({ plan, onEdit, onReplace, children }: {
+  children?: ReactNode; plan: BudgetPlan; onEdit: () => void; onReplace: () => void;
 }) {
   const today = currentDay();
   const cycle = getBudgetCycle(plan.start, today);
@@ -24,5 +25,6 @@ export default function BudgetScheduledState({ plan, onEdit, onReplace }: {
       <button type="button" className="budget-scheduled-edit" onClick={onEdit}>Edit plan</button>
       <button type="button" className="budget-scheduled-replace" onClick={onReplace}>Create a replacement plan</button>
     </section>
+    {children}
   </div>;
 }
