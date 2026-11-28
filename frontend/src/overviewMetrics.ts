@@ -1,3 +1,4 @@
+import type { ActivityTransaction } from './activityData';
 import type { LinkedAccount } from './plaid';
 import type { BudgetPlan } from './budgetState';
 import { getBudgetCycle } from './budgetCycle.ts';
@@ -31,4 +32,19 @@ export function overviewBudgetSummary(plan: BudgetPlan, accounts: LinkedAccount[
     progress: Math.max(0, Math.min(100, spent / plan.budget * 100)),
     categories: [...groups].map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name)),
   };
+}
+
+export function linkedMonthlyTotals(accounts: LinkedAccount[], transactions: ActivityTransaction[]) {
+  const eligible = accounts.filter(account => account.connectionStatus === 'connected' &&
+    ['cash', 'chequing', 'savings', 'credit_card'].includes(account.accountType));
+  const currencies = new Map(eligible.map(account => [account.id, account.currency]));
+  const totals = new Map(eligible.map(account => [account.currency, { income: 0, spending: 0 }]));
+  for (const row of transactions) {
+    if (row.status !== 'posted' || currencies.get(row.accountId) !== row.currency) continue;
+    const total = totals.get(row.currency)!;
+    const cents = Math.round(Number(row.amount) * 100);
+    if (row.kind === 'income') total.income += cents;
+    if (row.kind === 'expense' || row.kind === 'refund') total.spending -= cents;
+  }
+  return [...totals.entries()].sort(([a], [b]) => a.localeCompare(b));
 }

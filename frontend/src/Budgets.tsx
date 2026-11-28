@@ -12,7 +12,7 @@ import { spendingInCycle, type BudgetSpendingEntry as SpendingEntry } from "./bu
 import { allocationError, scaleTargets, type PlanEditorState } from "./budgetEditorState";
 import "./Budgets.css";
 
-const REPORT_URL = "http://localhost:7070/api/reports/monthly";
+import MonthlyBudgetReport from "./MonthlyBudgetReport";
 
 const currency = new Intl.NumberFormat("en-CA", {
   style: "currency",
@@ -310,7 +310,8 @@ function SpendingChart({ entries }: { entries: SpendingEntry[] }) {
 
 type Editor = PlanEditorState & { base: BudgetVersion; imported: boolean };
 
-export default function Budgets({ savedBudget, savedAccounts, initialCreate = false, onConnectAccount, onEditorModeChange }: {
+export default function Budgets({ userId, savedBudget, savedAccounts, canDownloadReports, onViewPlans, initialCreate = false, onConnectAccount, onEditorModeChange }: {
+  userId: string; canDownloadReports: boolean; onViewPlans: () => void;
   savedBudget: SavedBudget; savedAccounts: ReturnType<typeof useSavedAccounts>; initialCreate?: boolean; onConnectAccount: () => void; onEditorModeChange?: (mode: Editor["mode"] | null) => void;
 }) {
   const today = currentDay();
@@ -328,8 +329,6 @@ export default function Budgets({ savedBudget, savedAccounts, initialCreate = fa
   const [editor, setEditor] = useState<Editor | null>(() => initialCreate && snapshot && !plan && !legacy
     ? { mode: 'create', start: today, budget: '', categories: [], accountIds: connectedIds, base: { revision: snapshot.revision, environment: snapshot.environment }, imported: false } : null);
   const [planError, setPlanError] = useState("");
-  const [downloading, setDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState("");
 
   useEffect(() => { onEditorModeChange?.(editor?.mode ?? null); }, [editor?.mode, onEditorModeChange]);
 
@@ -406,54 +405,6 @@ export default function Budgets({ savedBudget, savedAccounts, initialCreate = fa
     }
   }
 
-  async function downloadMonthlyReport() {
-    if (downloading) return;
-    setDownloading(true);
-    setDownloadError("");
-    let reportTab: Window | null = null;
-
-    try {
-      reportTab = window.open("", "_blank");
-      if (reportTab) reportTab.opener = null;
-
-      const response = await fetch(REPORT_URL, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-      if (!response.ok) {
-        throw new Error(`Report request failed (${response.status}).`);
-      }
-
-      const data: unknown = await response.json();
-      if (
-        typeof data !== "object" ||
-        data === null ||
-        !("url" in data) ||
-        typeof data.url !== "string"
-      ) {
-        throw new Error("Invalid report URL response.");
-      }
-
-      const reportUrl = new URL(data.url);
-      if (reportUrl.protocol !== "https:") {
-        throw new Error("Report URL must use HTTPS.");
-      }
-
-      if (reportTab && !reportTab.closed) {
-        reportTab.location.replace(reportUrl.href);
-      } else {
-        window.location.assign(reportUrl.href);
-      }
-    } catch (error) {
-      reportTab?.close();
-      setDownloadError(
-        error instanceof Error ? error.message : "Unable to download the monthly report.",
-      );
-    } finally {
-      setDownloading(false);
-    }
-  }
-
   const retryNotice = savedBudget.error && <div className="budget-panel" role="alert">
     <p>{savedBudget.error}</p><button type="button" onClick={savedBudget.reload}>Try again</button>
   </div>;
@@ -486,9 +437,10 @@ export default function Budgets({ savedBudget, savedAccounts, initialCreate = fa
     <button type="button" className="budget-report-button" disabled={loading} onClick={() => openEditor('create', true)}>Review and import plan</button>
   </section></div>;
 
-  if (!plan) return <BudgetEmptyState onCreatePlan={() => openEditor('create')} loadError={error} onRetry={reload} />;
+  const report = <MonthlyBudgetReport userId={userId} environment={snapshot.environment} allowed={canDownloadReports} onViewPlans={onViewPlans} />;
+  if (!plan) return <BudgetEmptyState onCreatePlan={() => openEditor('create')} loadError={error} onRetry={reload}>{report}</BudgetEmptyState>;
 
-  if (cycle?.scheduled) return <BudgetScheduledState plan={plan} onEdit={() => openEditor("edit")} onReplace={() => openEditor("replace")} />;
+  if (cycle?.scheduled) return <BudgetScheduledState plan={plan} onEdit={() => openEditor("edit")} onReplace={() => openEditor("replace")}>{report}</BudgetScheduledState>;
 
   return (
     <div className="budgets-page">
@@ -535,21 +487,7 @@ export default function Budgets({ savedBudget, savedAccounts, initialCreate = fa
             <div className="budget-plan-stack">
               <SpendingChart entries={entries} />
 
-              <section className="budget-panel budget-report">
-                <h3>Monthly Budget Report</h3>
-                <p>Download your monthly financial summary as a PDF.</p>
-                <button
-                  type="button"
-                  className="budget-report-button"
-                  disabled={downloading}
-                  onClick={downloadMonthlyReport}
-                >
-                  {downloading ? "Preparing Report..." : "Download Monthly Report"}
-                </button>
-                {downloadError && (
-                  <p className="budget-report-error" role="alert">{downloadError}</p>
-                )}
-              </section>
+              {report}
             </div>
           </div>
         </>

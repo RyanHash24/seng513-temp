@@ -5,9 +5,6 @@
   --overview-border: var(--fc-border, #263c31);
   --overview-accent: var(--fc-accent, #61d98f);
   --overview-highlight: var(--fc-selected, #163d2a);
-  --overview-chart-green: #61d98f;
-  --overview-chart-secondary: #35b54a;
-  --overview-chart-gray: #879f93;
   min-height: calc(100dvh - 72px);
   padding: 40px;
   background: var(--fc-background, #0b1512);
@@ -16,9 +13,6 @@
 }
 
 .fc-shell[data-theme="light"] .fc-overview {
-  --overview-chart-green: #217a43;
-  --overview-chart-secondary: #528c6a;
-  --overview-chart-gray: #6f8a7f;
   --overview-footer: var(--fc-muted, #526660);
 }
 
@@ -145,7 +139,7 @@
 .fc-overview-transaction-amount { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .fc-overview-positive { color: var(--overview-accent); }
 
-.fc-overview-spending { width: min(350px, 100%); border: 0; }
+.fc-overview-spending { width: min(350px, 100%); border: 0; color-scheme: var(--fc-color-scheme, dark); }
 .fc-overview-spending h2 { font-size: 18px; font-weight: 600; line-height: 26px; }
 .fc-overview-donut { display: grid; width: 160px; max-width: 100%; aspect-ratio: 1; place-items: center; margin: 16px auto; border-radius: 50%; }
 .fc-overview-donut-center { display: grid; width: 74%; height: 74%; align-content: center; gap: 4px; border-radius: 50%; background: var(--overview-surface); text-align: center; }
@@ -153,7 +147,7 @@
 .fc-overview-donut-center span { font-size: 10px; line-height: 14px; }
 .fc-overview-legend { margin: 0; padding: 0; list-style: none; }
 .fc-overview-legend-row { padding: 3px 0; font-size: 14px; line-height: 20px; }
-.fc-overview-legend-row > span:first-child { display: flex; align-items: center; min-width: 0; }
+.fc-overview-legend-row > span:first-child { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .fc-overview-swatch { flex: 0 0 10px; width: 10px; height: 10px; border-radius: 50%; }
 .fc-overview .fc-overview-link { min-height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--overview-accent); font: inherit; font-size: 13px; font-weight: 600; line-height: 19px; cursor: pointer; }
 .fc-overview-card-heading .fc-overview-link { font-size: 12px; line-height: 17px; }

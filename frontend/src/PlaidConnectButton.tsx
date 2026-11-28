@@ -3,7 +3,8 @@ import { usePlaidLink } from 'react-plaid-link';
 import { plaidRequest, type PlaidEnvironment, type PlaidStatus } from './plaid';
 import { usePlaidStatus } from './usePlaidStatus';
 
-type Completion = { sessionId: string; publicToken?: string; accountIds?: string[]; environment: PlaidEnvironment };
+type BankImport = { connectionId: string; environment: PlaidEnvironment };
+type Completion = { importBankHistory: boolean; sessionId: string; publicToken?: string; accountIds?: string[]; environment: PlaidEnvironment };
 
 export default function PlaidConnectButton({ onConnected, className = 'settings-save', connectionId, status: suppliedStatus, product }: {
   onConnected?: () => void; className?: string; connectionId?: string; status?: PlaidStatus; product?: 'investments';
@@ -13,11 +14,39 @@ export default function PlaidConnectButton({ onConnected, className = 'settings-
   const [pending, setPending] = useState<Completion | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [bankImport, setBankImport] = useState<BankImport | null>(null);
+
+  async function importTransactions(bank: BankImport) {
+    setBusy(true);
+    setBankImport(bank);
+    setMessage('Bank connected. Importing transactions…');
+    try {
+      const result = await plaidRequest<{ added: number; updateStatus: string }>('sync', bank.environment,
+        { body: { connectionId: bank.connectionId } });
+      if (!result.added && ['NOT_READY', 'INITIAL_UPDATE_COMPLETE', 'TRANSACTIONS_UPDATE_STATUS_UNKNOWN'].includes(result.updateStatus)) {
+        setMessage('Your accounts are connected. Plaid is preparing transaction history. Retry shortly or continue and sync from Activity.');
+        return;
+      }
+      setBankImport(null);
+      setMessage('Bank connected. Available transactions imported.');
+      onConnected?.();
+    } catch {
+      setMessage('Your accounts are connected. The transaction import failed. Retry here or sync from Activity.');
+    } finally {
+      setBusy(false);
+    }
+  }
   async function finish(completion: Completion) {
     setBusy(true); setMessage(connectionId ? 'Confirming account access…' : 'Saving linked accounts…');
     try {
-      await plaidRequest(connectionId ? 'update' : 'exchange', completion.environment, { body: completion });
+      const { importBankHistory, ...request } = completion;
+      const saved = await plaidRequest<{ connectionId: string }>(connectionId ? 'update' : 'exchange', completion.environment, { body: request });
       setPending(null);
+      setSession(null);
+      if (importBankHistory) {
+        await importTransactions({ connectionId: saved.connectionId, environment: completion.environment });
+        return;
+      }
       setMessage(connectionId ? product === 'investments' ? 'Investment activity authorized. You can sync it now.' : 'Bank reconnected successfully.' : 'Bank connected successfully.');
       onConnected?.();
     } catch (cause) {
@@ -31,6 +60,7 @@ export default function PlaidConnectButton({ onConnected, className = 'settings-
     onSuccess: async (publicToken, metadata) => {
       if (!session) return;
       const completion: Completion = { sessionId: session.id, environment: session.environment,
+        importBankHistory: !connectionId && !product && metadata.accounts.some(account => account.type !== 'investment'),
         ...(connectionId ? {} : { publicToken, accountIds: metadata.accounts.map(account => account.id) }) };
       setPending(completion);
       await finish(completion);
@@ -51,6 +81,13 @@ export default function PlaidConnectButton({ onConnected, className = 'settings-
     }
     catch (cause) { setMessage(cause instanceof Error ? cause.message : 'Unable to start bank linking.'); setBusy(false); }
   }
+  if (bankImport) return <div>
+    <p role="status">{message}</p>
+    {!busy && <>
+      <button type="button" className={className} onClick={() => void importTransactions(bankImport)}>Retry import</button>
+      <button type="button" className={className} onClick={() => { setBankImport(null); onConnected?.(); }}>Continue</button>
+    </>}
+  </div>;
   return <div>
     {!suppliedStatus && status && <p>{status.environment === 'sandbox' ? 'Sandbox · Test bank connections' : 'Live bank connections'}</p>}
     <button className={className} type="button" onClick={() => void start()} disabled={!status?.configured || (busy && !error)}>

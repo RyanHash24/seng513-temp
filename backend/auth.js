@@ -50,9 +50,11 @@ function getJwtSecret() {
   return randomBytes(48).toString('hex');
 }
 
-function createAuth(pool, { secret, production = false, trialDays = 14, origins = ['http://localhost:5173', 'http://127.0.0.1:5173'], mailer, google, fetcher = fetch } = {}) {
+function createAuth(pool, { secret, production = false, trialDays = 14, googleSignInLimit = production ? 10 : 500,
+  origins = ['http://localhost:5173', 'http://127.0.0.1:5173'], mailer, google, fetcher = fetch } = {}) {
   if (!secret || Buffer.byteLength(secret) < 32) throw new Error('A JWT secret of at least 32 bytes is required.');
   if (!Number.isInteger(trialDays) || trialDays < 1 || trialDays > 90) throw new Error('TRIAL_DAYS must be an integer between 1 and 90.');
+  if (!Number.isSafeInteger(googleSignInLimit) || googleSignInLimit < 1) throw new Error('GOOGLE_SIGN_IN_LIMIT must be a positive integer.');
   const router = express.Router();
   const cookieOptions = { httpOnly: true, secure: production, sameSite: 'strict', path: '/api' };
   function issueSession(res, row) {
@@ -66,7 +68,8 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
     try { await mailer(row.email, purpose, await makeLink(pool,row.id,purpose,origin)); return true; }
     catch { console.warn('Authentication email delivery failed'); return false; }
   }
-  const flowLimit = rateLimit({ windowMs: 15*60*1000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, message: {error:'Too many requests. Try again later.'} });
+  const flowLimitOptions = { windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false };
+  const flowLimit = rateLimit({ ...flowLimitOptions, message: {error:'Too many requests. Try again later.'} });
   router.use((req, res, next) => {
     if (req.method !== 'GET' && (!origins.includes(req.get('Origin')) || !req.is('application/json'))) {
       return res.status(403).json({ error: 'Request origin or content type is not allowed.' });
@@ -189,7 +192,19 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
   });
   const oauthCookie = 'finclear_google_state';
   const oauthOptions = {httpOnly:true, secure:production, sameSite:'lax', path:'/api/auth/google/callback'};
-  router.post('/google/start', flowLimit, (req,res) => {
+  // Each Google attempt makes two requests. Keep each stage independent of account recovery.
+  const googleStartLimit = rateLimit({
+    ...flowLimitOptions, limit: googleSignInLimit,
+    message: { error: 'Too many Google sign-in attempts. Please try again in 15 minutes.' },
+  });
+  const googleCallbackLimit = rateLimit({
+    ...flowLimitOptions, limit: googleSignInLimit,
+    handler: (_req, res) => {
+      res.clearCookie(oauthCookie, oauthOptions);
+      res.redirect(303, `${origin}/#google-rate-limited`);
+    },
+  });
+  router.post('/google/start', googleStartLimit, (req,res) => {
     if (!google?.clientId || !google?.clientSecret || !google?.redirectUri) return res.status(503).json({error:'Google authentication is not configured.'});
     const mode = req.body?.mode;
     if (!['login','signup'].includes(mode) || (mode==='signup' && req.body?.acceptedTerms!==true)) return res.status(400).json({error:'Accept the terms before signing up.'});
@@ -200,7 +215,7 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
     url.search=new URLSearchParams({client_id:google.clientId,redirect_uri:google.redirectUri,response_type:'code',scope:'openid email profile',state,code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',prompt:'select_account'}).toString();
     res.json({url:url.href});
   });
-  router.get('/google/callback', flowLimit, async (req,res) => {
+  router.get('/google/callback', googleCallbackLimit, async (req,res) => {
     const cookie=(req.headers.cookie||'').split(';').map(v=>v.trim()).find(v=>v.startsWith(oauthCookie+'='));
     res.clearCookie(oauthCookie,oauthOptions);
     const fail=()=>res.redirect(303,`${origin}/#google-error`);

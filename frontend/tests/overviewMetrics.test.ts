@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { overviewBudgetContext, overviewBudgetSummary } from '../src/overviewMetrics.ts';
+import { linkedMonthlyTotals, overviewBudgetContext, overviewBudgetSummary } from '../src/overviewMetrics.ts';
 import type { LinkedAccount } from '../src/plaid.ts';
 import type { BudgetSpendingEntry } from '../src/budgetSpendingData.ts';
 
@@ -54,4 +54,20 @@ test('reconnection warnings retain imported spending, while removed accounts are
   const entries = [{ ...entry, id: 'one', amount: 500, date: '2026-11-27' }];
   assert.equal(overviewBudgetSummary(plan, [account, reconnecting], entries, '2026-11-27').spent, 500);
   assert.equal(overviewBudgetSummary(plan, [account], entries, '2026-11-27').spent, 0);
+});
+
+test('linked overview keeps currencies separate and excludes card payments, pending and disconnected activity', () => {
+  const accounts = [account, card, { ...account, id: 'us', currency: 'USD' },
+    { ...account, id: 'old', connectionStatus: 'disconnected' }];
+  const tx = (accountId: string, currency: string, kind: string, amount: string, status = 'posted') => ({
+    accountId, currency, kind, amount, status, id: 'row', description: '', merchantName: null,
+    accountName: '', institution: '', category: '', date: '2026-11-19',
+  });
+  const totals = linkedMonthlyTotals(accounts, [
+    tx('credit', 'CAD', 'expense', '-500.10'), tx('cash', 'CAD', 'refund', '50.05'),
+    tx('cash', 'CAD', 'income', '2000'), tx('cash', 'CAD', 'transfer', '-150'),
+    tx('us', 'USD', 'expense', '-12.34'), tx('us', 'USD', 'expense', '-40', 'pending'),
+    tx('old', 'CAD', 'expense', '-100'),
+  ]);
+  assert.deepEqual(totals, [['CAD', { income: 200000, spending: 45005 }], ['USD', { income: 0, spending: 1234 }]]);
 });

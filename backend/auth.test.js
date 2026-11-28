@@ -139,6 +139,60 @@ test('Google signup creates a verified account and redirects through the configu
   assert.match(callback.headers.get('set-cookie'), /finclear_auth=/);
 });
 
+test('Google sign-in uses separate development and production defaults', async t => {
+  for (const [production, expectedLimit] of [[false, 500], [true, 10]]) {
+    const { request } = await fixture(t, {
+      production,
+      google: { clientId: 'test-client', clientSecret: 'test-secret', redirectUri: origin + '/api/auth/google/callback' },
+    });
+    const start = await request('google/start', { mode: 'login' });
+    assert.equal(start.status, 200);
+    assert.match(start.headers.get('ratelimit-policy'), new RegExp(`\\bq=${expectedLimit}\\b`));
+  }
+});
+
+test('Google permits the configured number of complete sign-ins independently of account recovery and limits each stage', async t => {
+  const googleSignInLimit = 12;
+  const account = { ...morgan, email_verified_at: new Date(), session_version: 0 };
+  const database = {
+    query: async () => ({ rows: [] }),
+    connect: async () => ({
+      query: async sql => ({ rows: sql.includes('WHERE google_subject=') ? [account] : [] }),
+      release() {},
+    }),
+  };
+  const { request, base } = await fixture(t, {
+    database,
+    googleSignInLimit,
+    google: { clientId: 'test-client', clientSecret: 'test-secret', redirectUri: origin + '/api/auth/google/callback' },
+    fetcher: async url => ({ ok: true, json: async () => url.includes('oauth2.googleapis.com/token')
+      ? { access_token: 'test-access' }
+      : { sub: 'test-google-user', email: account.email, email_verified: true } }),
+  });
+  const recovery = () => request('forgot-password', { email: 'recovery@example.com' });
+  assert.equal((await recovery()).status, 202);
+  for (let attempt = 1; attempt <= googleSignInLimit; attempt++) {
+    const start = await request('google/start', { mode: 'login' });
+    assert.equal(start.status, 200);
+    const state = new URL((await start.json()).url).searchParams.get('state');
+    if (attempt === googleSignInLimit) {
+      const limited = await request('google/start', { mode: 'login' });
+      assert.equal(limited.status, 429);
+      assert.ok(Number(limited.headers.get('retry-after')) > 0);
+    }
+    const callback = await fetch(`${base}/api/auth/google/callback?code=test-code&state=${state}`, {
+      redirect: 'manual', headers: { Cookie: start.headers.getSetCookie()[0].split(';')[0] },
+    });
+    assert.equal(callback.headers.get('location'), origin + '/');
+    assert.ok(callback.headers.getSetCookie().some(cookie => cookie.startsWith('finclear_auth=')));
+  }
+  const limited = await fetch(base + '/api/auth/google/callback', { redirect: 'manual' });
+  assert.equal(limited.status, 303);
+  assert.equal(limited.headers.get('location'), origin + '/#google-rate-limited');
+  assert.ok(!limited.headers.getSetCookie().some(cookie => cookie.startsWith('finclear_auth=')));
+  assert.equal((await recovery()).status, 202);
+});
+
 test('login normalizes email, issues a restricted JWT cookie and returns no credentials', async t => {
   const { request } = await fixture(t);
   const response = await request('login', { email: ' MORGAN@EXAMPLE.COM ', password: 'FinClearDemo!2026', role: 'guest' });

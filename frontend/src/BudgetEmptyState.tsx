@@ -1,8 +1,9 @@
+import type { ReactNode } from 'react';
 import budgetIcon from './assets/navigation/budget-empty.svg';
 import './Budgets.css';
 
-export default function BudgetEmptyState({ onCreatePlan, loadError, onRetry }: {
-  onCreatePlan: () => void; loadError?: string; onRetry?: () => void;
+export default function BudgetEmptyState({ onCreatePlan, loadError, onRetry, children }: {
+  children?: ReactNode; onCreatePlan: () => void; loadError?: string; onRetry?: () => void;
 }) {
   return <div className="budgets-page budget-empty-page">
     <header className="budget-empty-heading">
@@ -20,6 +21,7 @@ export default function BudgetEmptyState({ onCreatePlan, loadError, onRetry }: {
         <p>You can adjust your categories and amounts anytime.</p>
       </div>
     </section>
+    {children}
     <footer className="budget-empty-footer">
       <span>Choose accounts</span><span aria-hidden="true">·</span>
       <span>Set a spending limit</span><span aria-hidden="true">·</span>

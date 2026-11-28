@@ -6,6 +6,8 @@ const express = require('express');
 const { createAuth, getJwtSecret } = require('./auth');
 const { configuredMailer } = require('./account-flows');
 const { createPlaid } = require('./plaid');
+const { rateLimit } = require('express-rate-limit');
+const { monthlyReportHandler } = require('./monthly-report');
 const { createBudgetPlans } = require('./budget-plans');
 const { createPrivacy } = require('./privacy');
 const { createSecurity } = require('./security');
@@ -72,6 +74,9 @@ function createApp(pool, authOptions, plaidOptions) {
   app.get('/api/account/permissions', auth.requireAuth, auth.requireVerified, (req, res) => res.json(req.user.permissions));
   app.get('/api/account/report-access', auth.requireAuth, auth.requireVerified,
     auth.requirePermission('monthlyReports'), (req, res) => res.sendStatus(204));
+  app.get('/api/reports/monthly', requireVerifiedAuth, auth.requirePermission('monthlyReports'),
+    rateLimit({ windowMs: 60000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false }),
+    monthlyReportHandler(pool, plaidOptions?.env ?? 'sandbox'));
   attachDownloads(app, requireVerifiedAuth, authOptions?.origins?.[0] || process.env.FRONTEND_ORIGIN || 'http://localhost:5173');
   app.use('/api/plaid', createPlaid(pool, requireVerifiedAuth, { origins: authOptions?.origins, ...plaidOptions }));
 
@@ -101,6 +106,7 @@ if (require.main === module) {
   if (production && !process.env.FRONTEND_ORIGIN) throw new Error('FRONTEND_ORIGIN is required in production.');
   const app = createApp(new Pool(), {
     secret: getJwtSecret(), production, trialDays: Number(process.env.TRIAL_DAYS || 14),
+    googleSignInLimit: process.env.GOOGLE_SIGN_IN_LIMIT ? Number(process.env.GOOGLE_SIGN_IN_LIMIT) : undefined,
     origins: process.env.FRONTEND_ORIGIN ? [process.env.FRONTEND_ORIGIN] : undefined,
     mailer: configuredMailer({ production, apiKey: process.env.RESEND_API_KEY, from: process.env.MAIL_FROM, devLinks: process.env.DEV_AUTH_LINKS === 'true' }),
     google: { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET, redirectUri: process.env.GOOGLE_REDIRECT_URI },

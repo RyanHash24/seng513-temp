@@ -18,6 +18,6 @@ export function useBudgetSpending(environment: PlaidEnvironment | undefined, acc
         error: cause instanceof Error ? cause.message : 'Unable to calculate spending.' }); });
     return () => controller.abort();
   }, [key, environment, ids, start, end]);
-  if (!key) return { entries: [], error: '', loading: false, reload };
-  return result.key === key ? { ...result, reload } : { entries: [], error: '', loading: true, reload };
+  if (!key) return { entries: [] as BudgetSpendingEntry[], error: '', loading: false, reload };
+  return result.key === key ? { ...result, reload } : { entries: [] as BudgetSpendingEntry[], error: '', loading: true, reload };
 }

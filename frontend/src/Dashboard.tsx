@@ -1,11 +1,11 @@
 import calendarIcon from "./assets/overview/calendar.svg";
-import groceriesIcon from "./assets/overview/groceries.svg";
-import transportIcon from "./assets/overview/transport.svg";
-import { overviewPreview, type OverviewSnapshot } from "./overviewData";
+import activityIcon from "./assets/navigation/activity.svg";
+import type { OverviewSnapshot } from "./overviewData";
 import "./Dashboard.css";
 
 type DashboardProps = {
-  data?: OverviewSnapshot;
+  data: OverviewSnapshot;
+  unavailableAccounts: boolean;
   onViewActivity?: () => void;
   onReviewBudget?: () => void;
   onViewPlans?: () => void;
@@ -17,8 +17,19 @@ const wholeMoney = new Intl.NumberFormat("en-CA", {
 });
 const shortDate = new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", timeZone: "UTC" });
 const fullDate = new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-const chartColors = ["var(--overview-chart-green)", "var(--overview-chart-secondary)", "var(--overview-chart-gray)"];
-const icons = { groceries: groceriesIcon, transport: transportIcon };
+// Light and dark variants share a hue so the legend reads the same in either theme.
+const chartColors = [
+  "light-dark(#147549, #61d98f)", // Mint
+  "light-dark(#2165ae, #70aaff)", // Blue
+  "light-dark(#a34c08, #ffab59)", // Orange
+  "light-dark(#7549ac, #bd96f5)", // Violet
+  "light-dark(#bd3542, #ff7d81)", // Coral
+  "light-dark(#007a83, #4ed3d9)", // Cyan
+  "light-dark(#886900, #f1d254)", // Gold
+  "light-dark(#ac387e, #ee92ce)", // Pink
+  "light-dark(#5b7722, #b1ce60)", // Olive
+  "light-dark(#617182, #a8b9c9)", // Slate
+];
 const dayMilliseconds = 86_400_000;
 
 function parseDay(day: string) {
@@ -36,7 +47,8 @@ function periodLabel(start: Date, end: Date) {
 }
 
 export default function Dashboard({
-  data = overviewPreview,
+  data,
+  unavailableAccounts,
   onViewActivity,
   onReviewBudget,
   onViewPlans,
@@ -60,18 +72,26 @@ export default function Dashboard({
   const todayLabel = new Intl.DateTimeFormat("en-CA", {
     month: "short", day: "numeric", timeZone: data.timeZone,
   }).format(now);
-  const remaining = data.period.allocated - data.period.spent;
+  const remaining = (Math.round(data.period.allocated * 100) - Math.round(data.period.spent * 100)) / 100;
   const scheduled = today < start.getTime();
   const status = scheduled ? "Plan scheduled" : today > end.getTime()
     ? "Cycle complete" : remaining < 0 ? "Over budget" : "Within budget";
   const percentage = data.period.allocated > 0
     ? (data.period.spent / data.period.allocated) * 100 : data.period.spent > 0 ? 100 : 0;
   const progress = Math.max(0, Math.min(100, percentage));
-  const spending = data.spending.filter(item => item.amount > 0);
+  const positiveSpending = data.spending.filter(item => item.amount > 0);
+  // Assign by name so a change in spending rank doesn't swap the category colors.
+  const categoryColors = new Map(positiveSpending.map(item => item.category).sort().map((name, index) => {
+    const hue = ((index - chartColors.length) * 137.508 + 24) % 360;
+    const color = chartColors[index] ?? `light-dark(oklch(49% 0.13 ${hue}), oklch(78% 0.13 ${hue}))`;
+    return [name, color];
+  }));
+  const spending = positiveSpending.map(item => ({ ...item, color: categoryColors.get(item.category)! }));
+  const credits = data.spending.filter(item => item.amount < 0);
   const chartTotal = spending.reduce((total, item) => total + item.amount, 0);
   const chart = spending.reduce((result, item, index) => {
     const angle = index === spending.length - 1 ? 360 : result.angle + item.amount / chartTotal * 360;
-    return { angle, stops: [...result.stops, `${chartColors[index % chartColors.length]} ${result.angle}deg ${angle}deg`] };
+    return { angle, stops: [...result.stops, `${item.color} ${result.angle}deg ${angle}deg`] };
   }, { angle: 0, stops: [] as string[] });
   const chartBackground = chart.stops.length
     ? `conic-gradient(${chart.stops.join(", ")})` : "var(--overview-border)";
@@ -82,9 +102,9 @@ export default function Dashboard({
       ? `Updated ${elapsedMinutes} minute${elapsedMinutes === 1 ? "" : "s"} ago`
       : `Updated ${shortDate.format(new Date(data.updatedAt!))}`;
   const trialEnd = data.viewer.role === "trial" && data.viewer.trialEndsAt
-    ? shortDate.format(parseDay(data.viewer.trialEndsAt)) : null;
-  const footer = [data.isPreview ? "Preview data" : null, updatedLabel,
-    `${data.linkedAccountCount} linked account${data.linkedAccountCount === 1 ? "" : "s"}`, "All amounts in CAD"].filter(Boolean).join(" · ");
+    ? shortDate.format(new Date(data.viewer.trialEndsAt)) : null;
+  const footer = [updatedLabel,
+    `${data.linkedAccountCount} linked account${data.linkedAccountCount === 1 ? "" : "s"}`, "Budget amounts in CAD"].filter(Boolean).join(" · ");
 
   return (
     <div className="fc-overview">
@@ -106,11 +126,12 @@ export default function Dashboard({
       <div className="fc-overview-grid">
         <div className="fc-overview-column">
           <section className="fc-overview-card fc-overview-budget" aria-label="Current budget cycle">
-            <button type="button" className="fc-overview-cycle" onClick={onReviewBudget} disabled={!onReviewBudget} aria-label={`Review budget for ${periodLabel(start, end)}`}>
+            <button type="button" className="fc-overview-cycle" onClick={onReviewBudget} disabled={!onReviewBudget} aria-label="Review your budget">
               {periodLabel(start, end)}
             </button>
             <p className="fc-overview-cycle-note fc-overview-muted"><span>Today · {todayLabel}</span><span aria-hidden="true">·</span><span>{`${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`}</span></p>
             <p className={`fc-overview-cycle-status${remaining < 0 ? " fc-overview-budget-over" : ""}`}>{status}</p>
+            {unavailableAccounts && <p className="fc-overview-muted">A selected account is unavailable. Totals reflect available saved activity.</p>}
             <dl className="fc-overview-budget-stats">
               <div className="fc-overview-budget-stat"><dt>Spent</dt><dd>{summaryMoney(data.period.spent)}</dd></div>
               <div className="fc-overview-budget-stat"><dt>{remaining < 0 ? "Over budget" : "Left to spend"}</dt><dd className={remaining < 0 ? "fc-overview-budget-over" : undefined}>{summaryMoney(Math.abs(remaining))}</dd></div>
@@ -121,17 +142,17 @@ export default function Dashboard({
 
           <section className="fc-overview-card fc-overview-activity-card" aria-labelledby="overview-activity-title">
             <header className="fc-overview-card-heading">
-              <h2 id="overview-activity-title">Recent activity</h2>
+              <h2 id="overview-activity-title">Recent activity this cycle</h2>
               {onViewActivity && <button type="button" className="fc-overview-link" onClick={onViewActivity}>See all activity <span aria-hidden="true">→</span></button>}
             </header>
             {data.recentTransactions.length ? (
               <ul className="fc-overview-activity">
                 {data.recentTransactions.map(transaction => (
                   <li key={transaction.id}>
-                    <span className="fc-overview-merchant-icon"><img src={icons[transaction.icon]} alt="" /></span>
+                    <span className="fc-overview-merchant-icon"><img src={activityIcon} alt="" /></span>
                     <div className="fc-overview-merchant"><strong>{transaction.merchant}</strong><p>{transaction.category} · {transaction.account}</p></div>
                     <time dateTime={transaction.date}>{shortDate.format(parseDay(transaction.date))}</time>
-                    <span className={`fc-overview-transaction-amount${transaction.direction === "income" ? " fc-overview-positive" : ""}`}>{transaction.direction === "income" ? "+" : "−"}{money.format(Math.abs(transaction.amount))}</span>
+                    <span className={`fc-overview-transaction-amount${transaction.amount > 0 ? " fc-overview-positive" : ""}`}>{new Intl.NumberFormat("en-CA", { style: "currency", currency: transaction.currency, currencyDisplay: transaction.currency === "CAD" ? "symbol" : "code", signDisplay: "exceptZero" }).format(transaction.amount)}</span>
                   </li>
                 ))}
               </ul>
@@ -155,8 +176,11 @@ export default function Dashboard({
               <div className="fc-overview-donut-center" aria-hidden="true"><strong>{summaryMoney(data.period.spent)}</strong><span>spent this cycle</span></div>
             </div>
             {spending.length ? <ul className="fc-overview-legend">
-              {spending.map((item, index) => <li key={item.category} className="fc-overview-legend-row"><span><span className="fc-overview-swatch" style={{ backgroundColor: chartColors[index % chartColors.length] }} aria-hidden="true" />{item.category}</span><span>{summaryMoney(item.amount)}</span></li>)}
-            </ul> : <p className="fc-overview-empty">No spending this cycle.</p>}
+              {spending.map(item => <li key={item.category} className="fc-overview-legend-row"><span><span className="fc-overview-swatch" style={{ backgroundColor: item.color }} aria-hidden="true" />{item.category}</span><span>{summaryMoney(item.amount)}</span></li>)}
+            </ul> : !credits.length && <p className="fc-overview-empty">No spending this cycle.</p>}
+            {credits.map(item => <p key={item.category} className="fc-overview-legend-row">
+              <span>{item.category} · Net refunds</span><span>{summaryMoney(-item.amount)}</span>
+            </p>)}
           </section>
         </div>
       </div>

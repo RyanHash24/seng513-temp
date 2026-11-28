@@ -17,6 +17,8 @@ export default function AuthGate({ component: Component }: { component: Componen
         return 'An account already exists with this email. Please log in using your password.';
       case '#google-error':
         return 'Google authentication failed. Please try again.';
+      case '#google-rate-limited':
+        return 'Too many Google sign-in attempts. Please try again in 15 minutes.';
       default:
         return '';
     }
@@ -56,6 +58,8 @@ export default function AuthGate({ component: Component }: { component: Componen
   async function logout() {
     const response = await authRequest('logout', {});
     if (!response.ok) throw new Error('Unable to log out. Please try again.');
+    // Keep this login form blank after an explicit logout, including on refresh.
+    window.history.replaceState({ ...window.history.state, finClearSignedOut: true }, '');
     authVersion.current++;
     setUser(null);
     setError('');
@@ -80,7 +84,7 @@ export default function AuthGate({ component: Component }: { component: Componen
     setNotice('');
     setScreen('connect');
   }} />;
-  if (!user) return <Login initialNotice={notice} onForgotPassword={()=>setFlow('forgot')} onCreateAccount={() => setScreen('signup')} onSubmit={async credentials => {
+  if (!user) return <Login afterLogout={window.history.state?.finClearSignedOut === true} initialNotice={notice} onForgotPassword={()=>setFlow('forgot')} onCreateAccount={() => setScreen('signup')} onSubmit={async credentials => {
     const nextUser = await readUser(await authRequest('login', credentials));
     authVersion.current++;
     setUser(nextUser);

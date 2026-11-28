@@ -50,6 +50,10 @@ const icons: Record<NavigationPage, string> = {
   settings: settingsIcon,
 };
 
+function NavigationIcon({ page }: { page: NavigationPage }) {
+  return <span aria-hidden="true" className="fc-nav-glyph" style={{ maskImage: `url("${icons[page]}")` }} />;
+}
+
 const desktopPages: NavigationPage[] = [
   "dashboard", "budgets", "transactions", "accounts", "reports",
 ];
@@ -166,6 +170,15 @@ const styles = `
 
   .fc-brand img { width: 28px; height: 32px; object-fit: contain; }
   .fc-icon { display: block; flex-shrink: 0; }
+  .fc-nav-glyph {
+    display: block;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    background-color: currentColor;
+    mask: center / contain no-repeat;
+    forced-color-adjust: preserve-parent-color;
+  }
   .fc-navigation { display: grid; gap: 6px; }
   .fc-nav-mobile { display: none; }
 
@@ -408,9 +421,6 @@ const styles = `
       color: var(--fc-mobile-active-text);
     }
 
-    .fc-nav-mobile .fc-nav-button[aria-current="page"] .fc-icon {
-      filter: brightness(0.25);
-    }
   }
 `;
 
@@ -548,7 +558,7 @@ function Workspace({ user, logout, onAccountDeleted, onSessionEnded, onPasswordC
               title={labels[item]}
               onClick={() => navigate(item)}
             >
-              <img className="fc-icon" src={icons[item]} alt="" />
+              <NavigationIcon page={item} />
               <span className="fc-long-label">{labels[item]}</span>
             </button>
           ))}
@@ -634,7 +644,7 @@ function Workspace({ user, logout, onAccountDeleted, onSessionEnded, onPasswordC
           </nav>
 
           <div className="fc-topbar-tools">
-            <span>{page === "accounts" ? "Balances shown in account currency" : page === "reports" ? "Amounts shown in report currency" : "All amounts in CAD"}</span>
+            <span>{page === "dashboard" ? "Account amounts shown in their currency" : page === "accounts" ? "Balances shown in account currency" : page === "reports" ? "Amounts shown in report currency" : "All amounts in CAD"}</span>
 
             <button
               type="button"
@@ -730,6 +740,9 @@ function Workspace({ user, logout, onAccountDeleted, onSessionEnded, onPasswordC
 
         {page === "dashboard" && (
           <WorkspaceOverview
+            user={planAccount}
+            onViewActivity={() => navigate("transactions")}
+            onViewPlans={() => navigate("plans")}
             savedBudget={savedBudget}
             accounts={savedAccounts}
             onCreateBudget={() => { navigate("budgets"); setCreateBudgetOnOpen(true); }}
@@ -738,7 +751,7 @@ function Workspace({ user, logout, onAccountDeleted, onSessionEnded, onPasswordC
             onViewAccounts={() => navigate("accounts")}
           />
         )}
-        {page === "budgets" && <Budgets savedBudget={savedBudget} savedAccounts={savedAccounts} onEditorModeChange={setBudgetEditorMode} initialCreate={createBudgetOnOpen} onConnectAccount={() => navigate("accounts")} />}
+        {page === "budgets" && <Budgets userId={user.id} canDownloadReports={planAccount.permissions.monthlyReports} onViewPlans={() => navigate("plans")} savedBudget={savedBudget} savedAccounts={savedAccounts} onEditorModeChange={setBudgetEditorMode} initialCreate={createBudgetOnOpen} onConnectAccount={() => navigate("accounts")} />}
         {page === "transactions" && <Transactions userId={user.id} hasLinkedAccounts={savedAccounts.accounts.length > 0} onViewAccounts={() => navigate("accounts")} />}
         {page === "accounts" && <Accounts connectOnOpen={connectAccountOnOpen} />}
         {page === "reports" && <BusinessReports onViewBudget={() => navigate("budgets")} onViewAccounts={() => navigate("accounts")} hasLinkedAccounts={savedAccounts.accounts.length > 0} accountsLoading={savedAccounts.loading} accountsError={savedAccounts.error} onRetryAccounts={savedAccounts.reload} />}
@@ -771,7 +784,7 @@ function Workspace({ user, logout, onAccountDeleted, onSessionEnded, onPasswordC
             aria-current={activeMobilePage === item ? "page" : undefined}
             onClick={() => navigate(item)}
           >
-            <img className="fc-icon" src={icons[item]} alt="" />
+            <NavigationIcon page={item} />
             {item === "dashboard" ? "Home" : labels[item]}
           </button>
         ))}
