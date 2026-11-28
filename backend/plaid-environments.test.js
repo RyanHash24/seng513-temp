@@ -18,8 +18,8 @@ test('Sandbox and Production stay isolated in PostgreSQL and HTTP routes', { ski
   assert.match(database, /^finclear_env_test_[a-z0-9_]+$/);
   const pool = new Pool({ database });
   t.after(() => pool.end());
-  await pool.query(`INSERT INTO users(id,first_name,email,password_hash,access_role) VALUES
-    ($1,'Morgan','env-morgan@example.com',repeat('x',64),'premium'),($2,'Alex','env-alex@example.com',repeat('x',64),'free')`, [owner, other]);
+  await pool.query(`INSERT INTO users(id,first_name,email,password_hash,access_role,email_verified_at) VALUES
+    ($1,'Morgan','env-morgan@example.com',repeat('x',64),'premium',now()),($2,'Alex','env-alex@example.com',repeat('x',64),'free',now())`, [owner, other]);
   const calls = [], items = new Map();
   for (const environment of ['sandbox', 'production']) {
     const connection = connectionIds[environment], account = accountIds[environment];

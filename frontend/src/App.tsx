@@ -6,7 +6,9 @@ import BusinessReports from "./BusinessReports";
 import WorkspaceOverview from "./WorkspaceOverview";
 import { useSavedAccounts } from "./useSavedAccounts";
 import AuthGate from "./AuthGate";
-import type { AuthUser } from "./auth";
+import { authRequest, readUser, type AuthUser } from "./auth";
+import Plans from "./Plans";
+import { describePlan } from "./planPresentation";
 import SavingsGoals from "./SavingsGoals";
 import Settings from "./Settings";
 import Transactions from "./Transactions";
@@ -30,11 +32,12 @@ const labels = {
   reports: "Business reports",
   settings: "Settings",
   savings: "Savings Goals",
+  plans: "Plans & billing",
 } as const;
 
 type Page = keyof typeof labels;
-type NavigationPage = Exclude<Page, "savings">;
-type Panel = "search" | "notifications" | "profile" | "subscription" | "help";
+type NavigationPage = Exclude<Page, "savings" | "plans">;
+type Panel = "search" | "notifications" | "profile" | "help";
 type Theme = "dark" | "light" | "system";
 
 const icons: Record<NavigationPage, string> = {
@@ -403,14 +406,23 @@ const styles = `
       background: var(--fc-mobile-active-background);
       color: var(--fc-mobile-active-text);
     }
+
+    .fc-nav-mobile .fc-nav-button[aria-current="page"] .fc-icon {
+      filter: brightness(0.25);
+    }
   }
 `;
 
-function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<void> }) {
-  const viewer = { firstName: user.firstName, role: user.role, trialEndsAt: user.trialEndsAt?.slice(0, 10) ?? null };
-  const trialEnd = viewer.role === "trial" && viewer.trialEndsAt ? new Intl.DateTimeFormat("en-CA", {
-    month: "short", day: "numeric", timeZone: "UTC",
-  }).format(new Date(`${viewer.trialEndsAt}T00:00:00Z`)) : null;
+function Workspace({ user, logout, onAccountDeleted, onSessionEnded, onPasswordChanged }: {
+  user: AuthUser; logout: () => Promise<void>; onAccountDeleted: (message: string) => void;
+  onSessionEnded: (message: string) => void; onPasswordChanged: () => void;
+}) {
+  const [planSnapshot, setPlanSnapshot] = useState<{ source: AuthUser; account: AuthUser } | null>(null);
+  const planAccount = planSnapshot?.source === user ? planSnapshot.account : user;
+  const [planRefreshing, setPlanRefreshing] = useState(false);
+  const [planError, setPlanError] = useState("");
+  const planStatus = describePlan(planAccount);
+  const viewer = { firstName: user.firstName, role: planAccount.role, trialEndsAt: planAccount.trialEndsAt?.slice(0, 10) ?? null };
   const [page, setPage] = useState<Page>("dashboard");
   const [createBudgetOnOpen, setCreateBudgetOnOpen] = useState(false);
   const [budgetEditorMode, setBudgetEditorMode] = useState<"create" | "edit" | "replace" | null>(null);
@@ -461,6 +473,24 @@ function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<voi
     window.scrollTo({ top: 0 });
   }
 
+  async function refreshPlan() {
+    if (planRefreshing) return;
+    setPlanRefreshing(true);
+    setPlanError("");
+    try {
+      const current = await readUser(await authRequest("me"));
+      if (current.id !== user.id) throw new Error("Your signed-in account changed. Reload FinClear before continuing.");
+      setPlanSnapshot({ source: user, account: current });
+    } catch (cause) {
+      setPlanError(cause instanceof Error ? cause.message : "Unable to refresh your plan status. Please try again.");
+    } finally { setPlanRefreshing(false); }
+  }
+
+  function openSubscription() {
+    navigate("settings");
+    setSettingsSection("Subscription");
+  }
+
   function togglePanel(next: Panel) {
     setQuery("");
     setPanel((current) => (current === next ? null : next));
@@ -472,7 +502,7 @@ function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<voi
   );
 
   const activeMobilePage =
-    page === "reports" || page === "savings" ? "settings" : page;
+    page === "reports" || page === "savings" || page === "plans" ? "settings" : page;
   const workspace =
     page === "reports" ? `${viewer.firstName}’s workspace` : "Personal workspace";
   const collapseLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
@@ -527,11 +557,11 @@ function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<voi
             type="button"
             className="fc-control fc-plan-link"
             aria-label="Subscription"
-            aria-expanded={panel === "subscription"}
-            onClick={() => togglePanel("subscription")}
+            aria-current={page === "plans" ? "page" : undefined}
+            onClick={() => navigate("plans")}
           >
-            <span className="fc-long-label fc-plan-badge">{viewer.role === "trial" ? "FREE TRIAL" : viewer.role.toUpperCase()}</span>
-            <span className="fc-long-label fc-plan-description">{trialEnd ? `Your trial ends ${trialEnd}.` : "Manage your FinClear plan."}</span>
+            <span className="fc-long-label fc-plan-badge">{planStatus.badge}</span>
+            <span className="fc-long-label fc-plan-description">{planStatus.sidebar}</span>
             <small className="fc-long-label fc-plan-action">View plans →</small>
             <span className="fc-short-label" aria-hidden="true">Plan</span>
           </button>
@@ -602,7 +632,7 @@ function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<voi
           </nav>
 
           <div className="fc-topbar-tools">
-            <span>{page === "accounts" ? "Balances shown in account currency" : "All amounts in CAD"}</span>
+            <span>{page === "accounts" ? "Balances shown in account currency" : page === "reports" ? "Amounts shown in report currency" : "All amounts in CAD"}</span>
 
             <button
               type="button"
@@ -687,13 +717,6 @@ function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<voi
               </>
             )}
 
-            {panel === "subscription" && (
-              <>
-                <h2>Subscription</h2>
-                <p>Plan information will appear when subscription data is connected.</p>
-              </>
-            )}
-
             {panel === "help" && (
               <>
                 <h2>Help &amp; support</h2>
@@ -716,11 +739,17 @@ function Workspace({ user, logout }: { user: AuthUser; logout: () => Promise<voi
         {page === "budgets" && <Budgets onEditorModeChange={setBudgetEditorMode} userId={user.id} initialCreate={createBudgetOnOpen} onConnectAccount={() => navigate("accounts")} />}
         {page === "transactions" && <Transactions userId={user.id} hasLinkedAccounts={savedAccounts.accounts.length > 0} onViewAccounts={() => navigate("accounts")} />}
         {page === "accounts" && <Accounts connectOnOpen={connectAccountOnOpen} />}
-        {page === "reports" && <BusinessReports onViewBudget={() => navigate("budgets")} onViewAccounts={() => navigate("accounts")} hasLinkedAccounts={savedAccounts.accounts.length > 0} />}
+        {page === "reports" && <BusinessReports onViewBudget={() => navigate("budgets")} onViewAccounts={() => navigate("accounts")} hasLinkedAccounts={savedAccounts.accounts.length > 0} accountsLoading={savedAccounts.loading} accountsError={savedAccounts.error} onRetryAccounts={savedAccounts.reload} />}
         {page === "savings" && <SavingsGoals />}
+        {page === "plans" && <Plans account={planAccount} refreshing={planRefreshing} refreshError={planError} onRefresh={() => void refreshPlan()} onBack={openSubscription} onContinue={() => navigate("dashboard")} />}
         {page === "settings" && (
           <Settings
-            user={user}
+            user={planAccount}
+            onAccountDeleted={onAccountDeleted}
+            onSessionEnded={onSessionEnded}
+            onPasswordChanged={onPasswordChanged}
+            initialSection={settingsSection === "Subscription" ? "subscription" : "profile"}
+            onViewPlans={() => navigate("plans")}
             onLogout={() => void signOut()}
             loggingOut={loggingOut}
             logoutError={logoutError}

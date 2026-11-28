@@ -30,6 +30,10 @@ async function verifyPassword(password, encoded) {
   return timingSafeEqual(derived, Buffer.from(hash, 'hex'));
 }
 
+function validNewPassword(password) {
+  return validPassword(password);
+}
+
 function publicUser(row) {
   const role = effectiveRole(row);
   return { id: String(row.id), firstName: row.first_name, lastName: row.last_name, email: row.email, role,
@@ -118,13 +122,16 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
       const token = cookie ? cookie.slice(COOKIE.length + 1) : '';
       const claims = jwt.verify(token, secret, { ...JWT_OPTIONS, algorithms: ['HS256'], maxAge: '15m' });
       if (typeof claims.sub !== 'string' || !/^[a-f0-9-]{36}$/i.test(claims.sub)) throw new Error('Invalid subject');
+      const version = claims.sv === undefined ? 0 : claims.sv;
+      if (!Number.isSafeInteger(version) || version < 0) throw new Error('Invalid session version');
       const { rows } = await pool.query(`SELECT ${USER_FIELDS} FROM users WHERE id = $1`, [claims.sub]);
-      if (!rows[0] || rows[0].access_role === 'guest' || (claims.sv ?? 0) !== (rows[0].session_version ?? 0)) return res.status(401).json({ error: 'Please log in again.' });
+      if (!rows[0] || rows[0].access_role === 'guest' || version !== (rows[0].session_version ?? 0)) return res.status(401).json({ error: 'Please log in again.' });
       req.user = publicUser(rows[0]);
+      req.sessionVersion = version;
       await persistExpiration(rows[0]);
       return next();
     } catch (error) {
-      if (error instanceof jwt.JsonWebTokenError || error.message === 'Invalid subject') {
+      if (error instanceof jwt.JsonWebTokenError || error.message === 'Invalid subject' || error.message === 'Invalid session version') {
         return res.status(401).json({ error: 'Please log in again.' });
       }
       return res.status(503).json({ error: 'Authentication is temporarily unavailable.' });
@@ -269,8 +276,9 @@ function createAuth(pool, { secret, production = false, trialDays = 14, origins 
     }
   });
   router.get('/me', requireAuth, (req, res) => res.json({ user: req.user }));
-  router.post('/logout', (req, res) => { res.clearCookie(COOKIE, cookieOptions); res.sendStatus(204); });
-  return { router, requireAuth, requireVerified, requirePermission };
+  function clearSession(res) { res.clearCookie(COOKIE, cookieOptions); }
+  router.post('/logout', (req, res) => { clearSession(res); res.sendStatus(204); });
+  return { router, requireAuth, requireVerified, requirePermission, clearSession, issueSession };
 }
 
-module.exports = { createAuth, getJwtSecret, verifyPassword, hashPassword };
+module.exports = { createAuth, getJwtSecret, verifyPassword, hashPassword, validNewPassword };

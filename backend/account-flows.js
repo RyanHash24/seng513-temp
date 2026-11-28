@@ -29,7 +29,7 @@ async function consume(pool, raw, purpose, newHash) {
     if (!matched) return false;
     if (purpose === 'verify') await client.query('UPDATE users SET email_verified_at=coalesce(email_verified_at,now()) WHERE id=$1', [matched.user_id]);
     else {
-      await client.query('UPDATE users SET password_hash=$2,session_version=session_version+1 WHERE id=$1', [matched.user_id,newHash]);
+      await client.query('UPDATE users SET password_hash=$2,session_version=session_version+1,password_changed_at=now() WHERE id=$1', [matched.user_id,newHash]);
       await client.query("DELETE FROM auth_tokens WHERE user_id=$1 AND purpose='reset'", [matched.user_id]);
     }
     return true;

@@ -123,13 +123,16 @@ export default function SavingsGoals() {
         <h2>Create New Goal</h2>
 
         <form className="goal-form" onSubmit={addGoal}>
+          <label><span>Goal name</span>
           <input
             placeholder="Goal name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
+          </label>
 
+          <label><span>Target amount (CAD)</span>
           <input
             type="number"
             placeholder="Target amount"
@@ -139,13 +142,16 @@ export default function SavingsGoals() {
             onChange={(e) => setTarget(e.target.value)}
             required
           />
+          </label>
 
+          <label><span>Deadline</span>
           <input
             type="date"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
             required
           />
+          </label>
 
           <button type="submit" className="goal-primary">
             + Add Goal

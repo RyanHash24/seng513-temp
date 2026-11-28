@@ -3,6 +3,7 @@ import AuthBrand from './AuthBrand';
 import AuthPolicy from './AuthPolicy';
 import PlaidConnectButton from './PlaidConnectButton';
 import './Signup.css';
+import { useAuthTheme } from './useAuthTheme';
 
 const benefits = [
   ['Choose the accounts you share', 'Select your bank and the accounts you want to link.'],
@@ -11,11 +12,15 @@ const benefits = [
 ];
 
 export default function ConnectBank({ onContinue, onBack = onContinue }: { onContinue: () => void; onBack?: () => void }) {
+  const theme = useAuthTheme();
   const [notice, setNotice] = useState('');
   const [policy, setPolicy] = useState<'privacy' | 'terms' | null>(null);
-  if (policy) return <AuthPolicy policy={policy} onBack={() => setPolicy(null)} />;
-  return <main className="login-page onboarding-page">
-    <header><AuthBrand /><span>Create your account</span></header>
+  if (policy) return <AuthPolicy policy={policy} theme={theme} onBack={() => setPolicy(null)} />;
+  return <main className="login-page onboarding-page" data-theme={theme}>
+    <header className="onboarding-header">
+      <AuthBrand /><span className="onboarding-caption">Create your account</span>
+      <h1 className="onboarding-mobile-title">Connect your bank</h1>
+    </header>
     <div className="onboarding-layout">
       <section className="signup-introduction" aria-labelledby="connect-heading">
         <div className="signup-progress-heading"><button className="login-link" onClick={onBack}>← Back</button><span>Step 2 of 2</span></div>

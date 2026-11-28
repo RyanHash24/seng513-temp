@@ -5,13 +5,16 @@ import Signup from './Signup';
 import ConnectBank from './ConnectBank';
 import AccountRecovery from './AccountRecovery';
 
-export default function AuthGate({ component: Component }: { component: ComponentType<{ user: AuthUser; logout: () => Promise<void> }> }) {
+export default function AuthGate({ component: Component }: { component: ComponentType<{
+  user: AuthUser; logout: () => Promise<void>; onAccountDeleted: (message: string) => void;
+  onSessionEnded: (message: string) => void; onPasswordChanged: () => void;
+}> }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState(() => {
     switch (window.location.hash) {
       case '#google-email-conflict':
-        return 'An account alreadt exists with this email. Please log in using your password.';
+        return 'An account already exists with this email. Please log in using your password.';
       case '#google-error':
         return 'Google authentication failed. Please try again.';
       default:
@@ -29,6 +32,7 @@ export default function AuthGate({ component: Component }: { component: Componen
     }
     return 'login';
   });
+  const [notice, setNotice] = useState('');
   const authVersion = useRef(0);
   useEffect(() => {
     if (window.location.hash) window.history.replaceState(null,'',window.location.pathname + window.location.search);
@@ -41,7 +45,7 @@ export default function AuthGate({ component: Component }: { component: Componen
         const restored = await readUser(response);
         if (active && version === authVersion.current) setUser(restored);
       } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : 'Unable to check your login.');
+        if (active && version === authVersion.current) setError(cause instanceof Error ? cause.message : 'Unable to check your login.');
       } finally { if (active) setChecking(false); }
     }
     void restore();
@@ -55,6 +59,7 @@ export default function AuthGate({ component: Component }: { component: Componen
     authVersion.current++;
     setUser(null);
     setError('');
+    setNotice('');
     setScreen('login');
   }
   async function refresh() {
@@ -72,12 +77,22 @@ export default function AuthGate({ component: Component }: { component: Componen
     const nextUser = await readUser(await authRequest('signup', credentials));
     authVersion.current++;
     setUser(nextUser);
+    setNotice('');
     setScreen('connect');
   }} />;
-  if (!user) return <Login onForgotPassword={()=>setFlow('forgot')} onCreateAccount={() => setScreen('signup')} onSubmit={async credentials => {
+  if (!user) return <Login initialNotice={notice} onForgotPassword={()=>setFlow('forgot')} onCreateAccount={() => setScreen('signup')} onSubmit={async credentials => {
     const nextUser = await readUser(await authRequest('login', credentials));
     authVersion.current++;
     setUser(nextUser);
+    setNotice('');
   }} initialError={error} />;
-  return <Component key={user.id} user={user} logout={logout} />;
+  function endSession(message: string) {
+    authVersion.current++;
+    setUser(null);
+    setError('');
+    setNotice(message);
+    setScreen('login');
+  }
+  return <Component key={user.id} user={user} logout={logout} onAccountDeleted={endSession} onSessionEnded={endSession}
+    onPasswordChanged={() => { authVersion.current++; }} />;
 }

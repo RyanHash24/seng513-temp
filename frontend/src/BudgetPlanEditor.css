@@ -1,7 +1,7 @@
 .budgets-page.plan-editor { min-height: calc(100dvh - 72px); padding: 32px 40px; }
-.plan-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 100px; margin-bottom: 24px; }
+.plan-editor-heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 16px 24px; min-height: 100px; margin-bottom: 24px; }
 .plan-editor-heading > div { min-width: 0; }
-.budgets-page .plan-editor-heading h1 { font-size: 30px; line-height: 44px; }
+.budgets-page .plan-editor-heading h1 { font-size: 30px; line-height: 1.3; text-wrap: balance; }
 .plan-editor-heading p { margin-top: 4px; color: var(--budget-muted); font-size: 14px; line-height: 20px; }
 .budgets-page .plan-back { display: block; min-height: 20px; margin-bottom: 4px; padding: 0; border: 0; border-radius: 0; font-size: 13px; font-weight: 500; line-height: 20px; }
 .plan-month { display: grid; place-items: center; flex-shrink: 0; width: 152px; min-height: 40px; padding: 8px 12px; border: 1px solid var(--budget-border); border-radius: 8px; background: var(--budget-surface); font-size: 13px; font-weight: 600; }
@@ -28,6 +28,9 @@
 .plan-categories { display: grid; gap: 12px; }
 .plan-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; }
 .plan-section-heading p { margin-top: 4px; color: var(--budget-muted); font-size: 12px; line-height: 18px; }
+.plan-section-heading > div { min-width: 0; }
+.plan-section-heading > button { flex-shrink: 0; }
+.plan-copy-note { color: var(--budget-muted); font-size: 12px; line-height: 18px; }
 .budgets-page .plan-text-button { min-height: 36px; padding: 8px 12px; border-color: transparent; font-size: 13px; line-height: 20px; }
 .plan-no-accounts .plan-text-button { width: 100%; min-height: 44px; }
 .plan-categories-empty { padding: 16px; border: 1px dashed var(--budget-border); border-radius: 12px; color: var(--budget-muted); font-size: 13px; line-height: 20px; }
@@ -46,7 +49,8 @@
 .budgets-page .plan-add-category { width: 100%; min-height: 48px; border-color: transparent; border-radius: 12px; background: var(--budget-surface); font-size: 13px; }
 .plan-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; min-height: 36px; color: var(--budget-muted); font-size: 13px; }
 .plan-total small { font-size: 12px; }
-.plan-total strong { margin-left: 12px; color: var(--budget-text); font-size: 18px; font-weight: 600; }
+.plan-total > span { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.plan-total strong { color: var(--budget-text); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .plan-editor-aside { display: grid; gap: 20px; min-width: 0; }
 .plan-glance { display: grid; gap: 16px; padding: 24px; background: var(--fc-selected, #163d2a); }
 .plan-unassigned { display: grid; gap: 4px; }
@@ -56,7 +60,7 @@
 .plan-glance-totals { display: grid; gap: 16px; padding-top: 16px; border-top: 1px solid var(--budget-border); }
 .plan-glance-totals p { display: flex; justify-content: space-between; gap: 12px; min-height: 24px; font-size: 14px; line-height: 20px; }
 .plan-glance-totals span { color: var(--budget-muted); }
-.plan-glance-totals strong { font-size: 13px; font-weight: 500; }
+.plan-glance-totals strong { font-size: 13px; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
 .plan-guidance { padding: 8px; color: var(--budget-muted); font-size: 12px; line-height: 18px; }
 .plan-overallocated .plan-unassigned :is(span, p), .plan-error { color: var(--budget-red); }
 .plan-save-footer { display: flex; align-items: center; gap: 16px; min-height: 76px; margin-top: 24px; padding: 16px; }
@@ -80,6 +84,13 @@
 .plan-keypad button:last-child { font-size: 12px; }
 .plan-dialog .plan-dialog-apply, .plan-dialog .plan-dialog-cancel { display: block; width: 100%; }
 .plan-dialog .plan-dialog-cancel { margin-top: 8px; border-color: transparent; }
+.plan-replacement-confirmation { display: grid; gap: 16px; }
+.plan-replacement-confirmation > p { color: var(--budget-muted); font-size: 14px; line-height: 21px; }
+.plan-replacement-confirmation dl { display: grid; gap: 4px; margin: 0; padding: 16px 0; border-block: 1px solid var(--budget-border); font-size: 13px; line-height: 20px; }
+.plan-replacement-confirmation dt { color: var(--budget-muted); }
+.plan-replacement-confirmation dd { margin: 0 0 8px; font-variant-numeric: tabular-nums; }
+.plan-replacement-confirmation dd:last-child { margin-bottom: 0; }
+.plan-replacement-confirmation .plan-dialog-cancel { margin: 0; }
 .plan-calendar-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0 8px; font-size: 13px; }
 .plan-calendar-heading button { width: 36px; min-height: 36px; padding: 0; border-color: transparent; font-size: 24px; }
 .plan-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: 16px; }
@@ -112,9 +123,9 @@
   .plan-editor-heading { align-items: start; flex-direction: column; gap: 12px; }
   .budgets-page .plan-editor-heading h1 { font-size: 26px; line-height: 36px; }
   .plan-month { width: auto; min-height: 32px; padding: 4px 10px; }
-  .plan-category-card > header { flex-wrap: wrap; gap: 4px; padding: 12px; }
-  .plan-category-card .plan-category-name { flex-basis: calc(100% - 200px); }
-  .plan-category-card .plan-amount-button { width: 100px; }
+  .plan-category-card > header { display: grid; grid-template-columns: minmax(0, 1fr) 36px 36px; gap: 8px 4px; padding: 12px; }
+  .plan-category-card .plan-category-name { grid-column: 1 / -1; }
+  .plan-category-card > header > .plan-amount-button { width: 100%; text-align: left; }
   .plan-expense-row { gap: 4px; padding: 4px 12px 4px 24px; }
   .plan-section-heading { align-items: start; flex-wrap: wrap; gap: 4px; }
   .plan-save-footer { flex-wrap: wrap; gap: 8px; }

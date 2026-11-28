@@ -6,6 +6,8 @@ const express = require('express');
 const { createAuth, getJwtSecret } = require('./auth');
 const { configuredMailer } = require('./account-flows');
 const { createPlaid } = require('./plaid');
+const { createPrivacy } = require('./privacy');
+const { createSecurity } = require('./security');
 const PORT = 3000;
 
 const DOWNLOAD_URL_EXPIRATION_SECONDS = 300;
@@ -56,6 +58,12 @@ function createApp(pool, authOptions, plaidOptions) {
   app.use(express.json({ limit: '8kb' }));
   const auth = createAuth(pool, authOptions);
   app.use('/api/auth', auth.router);
+  app.use('/api/security', createSecurity(pool, auth.requireAuth, {
+    origins: authOptions?.origins, issueSession: auth.issueSession, clearSession: auth.clearSession,
+  }));
+  app.use('/api/privacy', createPrivacy(pool, auth.requireAuth, {
+    origins: authOptions?.origins, clearSession: auth.clearSession, plaid: plaidOptions,
+  }));
   const requireVerifiedAuth = (req, res, next) => auth.requireAuth(req, res, () =>
     auth.requireVerified(req, res, next));
   app.get('/api/account/permissions', auth.requireAuth, auth.requireVerified, (req, res) => res.json(req.user.permissions));

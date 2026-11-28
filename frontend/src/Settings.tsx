@@ -1,6 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Appearance from "./Appearance";
+import DataPrivacy from "./DataPrivacy";
+import SecuritySettings from "./SecuritySettings";
 import PlaidTestPanel from "./PlaidTestPanel";
+import { SubscriptionPlans } from "./PlanStatus";
 import type { AuthUser } from "./auth";
 import "./Settings.css";
 
@@ -21,6 +24,11 @@ type SettingsProps = {
   onSectionChange?: (label: string) => void;
   onViewAccounts?: () => void;
   onThemeChange?: (theme: "dark" | "light" | "system") => void;
+  onViewPlans?: () => void;
+  onAccountDeleted: (message: string) => void;
+  onSessionEnded: (message: string) => void;
+  onPasswordChanged: () => void;
+  initialSection?: "profile" | "subscription";
 };
 
 
@@ -49,12 +57,6 @@ type Section = keyof typeof sections;
 type EditableSection = "profile" | "notifications" | "budget";
 
 const sectionOrder = Object.keys(sections) as Section[];
-
-const pendingSections = {
-  security: "Password and sign-in controls will be available once authentication is connected.",
-  subscription: "Plan information will appear when subscription data is connected.",
-  privacy: "Account data export and deletion controls are pending.",
-};
 
 const currencies = [
   ["CAD", "Canadian Dollar"],
@@ -349,11 +351,16 @@ export default function Settings({
   onSectionChange,
   onViewAccounts,
   onThemeChange,
+  onViewPlans,
+  onAccountDeleted,
+  onSessionEnded,
+  onPasswordChanged,
+  initialSection = "profile",
 }: SettingsProps) {
   const storageKey = `finclear-settings:${user.id}`;
   const [savedSettings, setSavedSettings] = useState(() => loadSettings(storageKey, user));
   const [draft, setDraft] = useState(savedSettings);
-  const [section, setSection] = useState<Section>("profile");
+  const [section, setSection] = useState<Section>(initialSection);
   const [feedback, setFeedback] = useState<
     { message: string; error: boolean } | null
   >(null);
@@ -552,11 +559,11 @@ export default function Settings({
           </form>
         )}
 
-        {(section === "security" || section === "subscription" || section === "privacy") && (
-          <div className="fc-settings-body">
-            <p className="fc-settings-description">{pendingSections[section]}</p>
-          </div>
-        )}
+        {section === "subscription" && <div className="fc-settings-body"><SubscriptionPlans account={user} onViewPlans={onViewPlans} /></div>}
+
+        {section === "privacy" && <DataPrivacy user={user} onDeleted={onAccountDeleted} />}
+
+        {section === "security" && <SecuritySettings onSignedOut={onSessionEnded} onPasswordChanged={onPasswordChanged} />}
 
         {feedback && (
           <p

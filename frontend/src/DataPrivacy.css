@@ -1,0 +1,21 @@
+.fc-privacy { display: grid; gap: 24px; }
+.fc-privacy section { display: grid; justify-items: start; gap: 12px; min-width: 0; }
+.fc-privacy p, .fc-privacy-dialog p { margin: 0; color: var(--fc-muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.fc-privacy .fc-privacy-danger { padding-top: 24px; border-top: 1px solid var(--fc-border); }
+.fc-settings :is(.fc-privacy-delete), .fc-privacy-dialog .fc-privacy-delete { border-color: var(--fc-error); color: var(--fc-error); }
+.fc-privacy-dialog { box-sizing: border-box; width: min(520px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 24px; overflow-y: auto; border: 1px solid var(--fc-border); border-radius: 16px; background: var(--fc-surface); color: var(--fc-text); color-scheme: var(--fc-color-scheme); }
+.fc-privacy-dialog::backdrop { background: rgb(0 0 0 / 60%); }
+.fc-privacy-dialog[open], .fc-privacy-dialog form, .fc-privacy-ready { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.fc-privacy-dialog * { box-sizing: border-box; min-width: 0; }
+.fc-privacy-dialog h2 { margin: 0; font-size: 20px; line-height: 1.4; }
+.fc-privacy-dialog label { display: grid; gap: 8px; font-size: 13px; }
+.fc-privacy-dialog input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--fc-border); border-radius: 8px; background: var(--fc-input); color: var(--fc-text); font: inherit; font-size: 16px; }
+.fc-privacy-dialog input::placeholder { color: var(--fc-muted); opacity: 1; }
+.fc-privacy-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; }
+.fc-privacy-dialog button, .fc-privacy-download { min-height: 44px; padding: 10px 14px; border: 1px solid var(--fc-border); border-radius: 8px; background: var(--fc-input); color: var(--fc-text); font: inherit; font-size: 13px; cursor: pointer; }
+.fc-privacy-dialog .fc-privacy-primary, .fc-privacy-download { background: var(--fc-accent); color: var(--fc-on-accent); border-color: var(--fc-accent); font-weight: 600; }
+.fc-privacy-download { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.fc-privacy-dialog :is(button, input, a):focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+.fc-privacy-dialog :disabled { opacity: .6; cursor: default; }
+.fc-privacy-dialog .fc-privacy-error { color: var(--fc-error); }
+@media (max-width: 700px) { .fc-privacy-dialog { padding: 20px; } .fc-privacy-actions > button { width: 100%; } }

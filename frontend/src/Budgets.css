@@ -37,6 +37,13 @@
   font-size: 14px;
 }
 
+.budget-plan-heading > div { min-width: 0; }
+.budget-plan-heading h1 { text-wrap: balance; }
+.budget-plan-balance { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 24px; margin-top: 16px; }
+.budget-plan-balance p { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.budget-plan-balance strong { font-size: 22px; line-height: 1.4; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.budget-plan-balance > span, .budget-plan-balance p > span { color: var(--budget-muted); font-size: 14px; line-height: 1.5; }
+
 .budgets-summary,
 .budget-grid {
   display: grid;

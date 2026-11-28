@@ -1,0 +1,26 @@
+.fc-security { display: grid; gap: 24px; }
+.fc-security section { display: grid; gap: 12px; min-width: 0; }
+.fc-security p, .fc-security-dialog p { margin: 0; color: var(--fc-muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.fc-security-summary { display: grid; gap: 12px; margin: 0; font-size: 13px; }
+.fc-security-summary > div { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; }
+.fc-security-summary dt { color: var(--fc-muted); }
+.fc-security-summary dd { margin: 0; overflow-wrap: anywhere; }
+.fc-security form, .fc-security-dialog form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+.fc-security label, .fc-security-dialog label { display: grid; gap: 8px; font-size: 13px; }
+.fc-security input:not([type='checkbox']), .fc-security-dialog input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--fc-border); border-radius: 8px; background: var(--fc-input); color: var(--fc-text); font: inherit; font-size: 16px; }
+.fc-security .fc-security-show { display: flex; align-items: center; gap: 10px; min-height: 32px; cursor: pointer; }
+.fc-security-show input { width: 18px; height: 18px; margin: 0; accent-color: var(--fc-accent); }
+.fc-security-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; }
+.fc-security .fc-security-primary, .fc-security-dialog .fc-security-primary { border-color: var(--fc-accent); background: var(--fc-accent); color: var(--fc-on-accent); font-weight: 600; }
+.fc-security :disabled, .fc-security-dialog :disabled { opacity: .6; cursor: default; }
+.fc-security .fc-security-error, .fc-security-dialog .fc-security-error { color: var(--fc-error); }
+.fc-security .fc-security-success { color: var(--fc-accent); }
+.fc-security-sessions { border-top: 1px solid var(--fc-border); padding-top: 24px; }
+.fc-security-sessions > button { justify-self: start; }
+.fc-security-dialog { box-sizing: border-box; width: min(480px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 24px; overflow-y: auto; border: 1px solid var(--fc-border); border-radius: 16px; color: var(--fc-text); background: var(--fc-surface); color-scheme: var(--fc-color-scheme); }
+.fc-security-dialog[open] { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.fc-security-dialog h2 { margin: 0; font-size: 20px; line-height: 1.4; }
+.fc-security-dialog::backdrop { background: rgb(0 0 0 / 60%); }
+.fc-security-dialog button { min-height: 44px; padding: 10px 14px; border: 1px solid var(--fc-border); border-radius: 8px; background: var(--fc-input); color: var(--fc-text); font: inherit; font-size: 13px; cursor: pointer; }
+.fc-security-dialog :is(input, button):focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+@media (max-width: 700px) { .fc-security-dialog { padding: 20px; } .fc-security-actions > button { width: 100%; } }

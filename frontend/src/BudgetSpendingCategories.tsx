@@ -33,7 +33,10 @@ function Remaining({ allocated, spent, showLabel = false }: { allocated: number 
 function Category({ category, entries, accounts }: { category: BudgetCategory; entries: BudgetSpendingEntry[]; accounts: { id: string; name: string }[] }) {
   const [open, setOpen] = useState(false);
   const [expandedExpenses, setExpandedExpenses] = useState<string[]>([]);
-  const { spent, rows } = categorySpending(category, entries);
+  const { spent, rows: spendingRows } = categorySpending(category, entries);
+  const rows = spendingRows.some(row => row.name === 'Other spending') ? spendingRows : [
+    ...spendingRows, { name: 'Other spending', allocated: null, spent: 0, transactions: [] },
+  ];
   const percent = category.allocation > 0 ? Math.min(100, Math.max(0, spent / category.allocation * 100)) : spent > 0 ? 100 : 0;
   const tone = remainingTone(category.allocation, spent);
   const detailsId = `budget-category-details-${category.id}`;
