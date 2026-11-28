@@ -29,7 +29,8 @@ test('refunds restore the budget, transfers stay separate, and amounts preserve 
     { kind: 'expense', cents: '-999999999999999999', currency: 'USD' },
   ];
   const totals = summarize(rows);
-  assert.equal(totals.get('CAD').categories.get('Food & drink'), 775n);
+  assert.equal(totals.get('CAD').categories.get('Food & drink').amount, 775n);
+  assert.equal(totals.get('CAD').categories.get('Food & drink').subcategories.get('Groceries'), 775n);
   assert.equal(totals.get('CAD').income, 100000n);
   assert.equal(totals.get('CAD').transfers, -50000n);
   assert.equal(totals.get('USD').expenses, 999999999999999999n);
@@ -60,7 +61,7 @@ test('report downloads require verification and plan access and derive ownership
   assert.equal((await fetch(`${base}?month=2024-02`, { headers: { Cookie: cookie } })).status, 409);
   const response = await fetch(`${base}?month=2024-02&userId=another-user`, { headers });
   assert.equal(response.status, 200);
-  assert.deepEqual(parameters, [owner.id, 'sandbox', '2024-02-01', '2024-03-01', null]);
+  assert.deepEqual(parameters, [owner.id, 'sandbox', '2024-02-01', '2024-03-01']);
   assert.equal(response.headers.get('content-type'), 'application/pdf');
   assert.match(response.headers.get('content-disposition'), /attachment; filename="FinClear_Monthly_Budget_2024-02.pdf"/);
   assert.match(response.headers.get('cache-control'), /no-store/);
